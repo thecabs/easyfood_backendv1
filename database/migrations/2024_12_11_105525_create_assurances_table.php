@@ -10,13 +10,13 @@ class CreateAssurancesTable extends Migration
     {
         Schema::create('assurances', function (Blueprint $table) {
             $table->id('id_assurance'); // Clé primaire
-            $table->unsignedBigInteger('id_user'); // Référence à l'utilisateur
+            $table->unsignedBigInteger('id_gestionnaire')->nullable(); // Référence à l'utilisateur
             $table->string('code_ifc');
-            $table->string('libelle')->nullable(); // Nom de l'assurance
+            $table->string('libelle'); // Nom de l'assurance
             $table->timestamps();
 
             // Définir la clé étrangère
-            $table->foreign('id_user')->references('id_user')->on('users')->onDelete('cascade');
+            $table->foreign('id_gestionnaire')->references('id_user')->on('users')->onDelete('cascade');
         });
     }
 

@@ -21,7 +21,6 @@ class CreateUsersTable extends Migration
                 'entreprise_gest', 'partenaire_shop_gest', 
                 'caissiere_gest', 'assurance_gest'
             ])->default('employe');
-            $table->unsignedBigInteger('id_assurance')->nullable(); // Référence à l'assurance
             $table->unsignedBigInteger('id_entreprise')->nullable(); // Référence à l'entreprise
             $table->unsignedBigInteger('id_partenaire_shop')->nullable(); // Référence au partenaire shop
             $table->enum('statut', ['en_attente', 'actif', 'inactif'])->default('inactif'); // Statut

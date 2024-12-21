@@ -16,7 +16,7 @@ class Otp extends Model
     public static function generateOtp($email)
     {
         $otp = rand(100000, 999999); // Génère un OTP à 6 chiffres
-        $expires_at = now()->addMinutes(5); // L'OTP expire dans 5 minutes
+        $expires_at = now()->addMinutes(10); // L'OTP expire dans 5 minutes
 
         self::create([
             'email' => $email,

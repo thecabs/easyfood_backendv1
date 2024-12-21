@@ -21,7 +21,7 @@ class AuthController extends Controller
         // Validate input
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
-            'mot_de_passe' => 'required',
+            'password' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -36,7 +36,7 @@ class AuthController extends Controller
             $user = User::where('email', $request->email)->first();
 
             // Check if password matches
-            if (!Hash::check($request->mot_de_passe, $user->mot_de_passe)) {
+            if (!Hash::check($request->password, $user->password)) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Email ou mot de passe incorrect.',
@@ -51,6 +51,9 @@ class AuthController extends Controller
                 ], 403);
             }
 
+            // Load the user's role
+            $user->load('role'); // Assurez-vous que la relation "role" est correctement définie
+
             // Generate API token
             $token = $user->createToken('authToken')->plainTextToken;
 
@@ -58,7 +61,12 @@ class AuthController extends Controller
                 'status' => 'success',
                 'message' => 'Connexion réussie.',
                 'token' => $token,
-                'user' => $user,
+                'user' => [
+                    'id' => $user->id_user,
+                    'email' => $user->email,
+                    'nom' => $user->nom,
+                    'role' => $user->role, // Inclut les informations sur le rôle
+                ],
             ], 200);
         } catch (\Exception $e) {
             Log::error('Erreur lors de la connexion : ' . $e->getMessage());

@@ -16,7 +16,7 @@ class CreateEntreprisesTable extends Migration
             $table->string('quartier'); // Quartier
             $table->text('adresse'); // Adresse complète de l'entreprise
             $table->unsignedBigInteger('id_assurance'); // Relation avec la table assurances
-            $table->unsignedBigInteger('id_user')->nullable(); // Relation avec la table users
+            $table->unsignedBigInteger('id_gestionnaire')->nullable(); // Relation avec la table users
             $table->timestamps();
 
             // Contrainte de clé étrangère pour id_assurance
@@ -26,7 +26,7 @@ class CreateEntreprisesTable extends Migration
                 ->onDelete('cascade'); // Suppression en cascade
 
             // Contrainte de clé étrangère pour id_user
-            $table->foreign('id_user')
+            $table->foreign('id_gestionnaire')
                 ->references('id_user')
                 ->on('users')
                 ->onDelete('set null'); // Met à NULL si l'utilisateur est supprimé

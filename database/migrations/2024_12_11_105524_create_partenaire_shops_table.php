@@ -10,7 +10,7 @@ class CreatePartenaireShopsTable extends Migration
     {
         Schema::create('partenaire_shops', function (Blueprint $table) {
             $table->id('id_partenaire');
-            $table->unsignedBigInteger('id_user'); // ID utilisateur
+            $table->unsignedBigInteger('id_gestionnaire'); // ID utilisateur
             $table->string('nom');
             $table->string('adresse');
             $table->string('ville');
@@ -18,7 +18,7 @@ class CreatePartenaireShopsTable extends Migration
             $table->timestamps();
         
             // Clé étrangère vers la table users
-            $table->foreign('id_user')->references('id_user')->on('users')->onDelete('cascade');
+            $table->foreign('id_gestionnaire')->references('id_user')->on('users')->onDelete('cascade');
         });
         
     }

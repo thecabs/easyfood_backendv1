@@ -9,8 +9,7 @@ class AddForeignKeysToUsersTable extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-             $table->foreign('id_assurance')->references('id_assurance')->on('assurances')->onDelete('set null');
-            $table->foreign('id_entreprise')->references('id_entreprise')->on('entreprises')->onDelete('set null');
+             $table->foreign('id_entreprise')->references('id_entreprise')->on('entreprises')->onDelete('set null');
             $table->foreign('id_partenaire_shop')->references('id_partenaire')->on('partenaire_shops')->onDelete('set null');
         });
     }
