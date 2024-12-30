@@ -6,5 +6,8 @@
 </head>
 <body>
     <p>Votre code OTP est : <strong>{{ $otp }}</strong></p>
+
+    <p>Cordialement,</p>
+    <p>L'équipe TacTicTECH</p>
 </body>
 </html>

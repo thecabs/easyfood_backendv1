@@ -115,83 +115,172 @@ class EmployeController extends Controller
      * Activer le compte Employé.
      */
     
-     public function activate(Request $request)
-     {
-         $currentUser = Auth::user();
+    //  public function activate(Request $request)
+    //  {
+    //      $currentUser = Auth::user();
          
-         if (!$this->hasPermission($currentUser)) {
-             return response()->json([
-                 'status' => 'error',
-                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-             ], 403);
-         }
+    //      if (!$this->hasPermission($currentUser)) {
+    //          return response()->json([
+    //              'status' => 'error',
+    //              'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+    //          ], 403);
+    //      }
      
-         $validator = Validator::make($request->all(), [
-             'email' => 'required|email|exists:users,email',
-         ]);
+    //      $validator = Validator::make($request->all(), [
+    //          'email' => 'required|email|exists:users,email',
+    //      ]);
      
-         if ($validator->fails()) {
-             return response()->json([
-                 'status' => 'error',
-                 'errors' => $validator->errors(),
-             ], 422);
-         }
+    //      if ($validator->fails()) {
+    //          return response()->json([
+    //              'status' => 'error',
+    //              'errors' => $validator->errors(),
+    //          ], 422);
+    //      }
      
-         DB::beginTransaction();
+    //      DB::beginTransaction();
      
-         try {
-             $user = User::where('email', $request->email)->first();
+    //      try {
+    //          $user = User::where('email', $request->email)->first();
      
-             if ($user->statut !== self::STATUT_EN_ATTENTE) {
-                 return response()->json([
-                     'status' => 'error',
-                     'message' => 'L’utilisateur doit valider son OTP avant activation.',
-                 ], 400);
-             }
+    //          if ($user->statut !== self::STATUT_EN_ATTENTE) {
+    //              return response()->json([
+    //                  'status' => 'error',
+    //                  'message' => 'L’utilisateur doit valider son OTP avant activation.',
+    //              ], 400);
+    //          }
      
-             $existingCompte = Compte::where('id_user', $user->id_user)->first();
-             if ($existingCompte) {
-                 return response()->json([
-                     'status' => 'error',
-                     'message' => 'Un compte bancaire existe déjà pour cet employé.',
-                 ], 400);
-             }
+    //          $existingCompte = Compte::where('id_user', $user->id_user)->first();
+    //          if ($existingCompte) {
+    //              return response()->json([
+    //                  'status' => 'error',
+    //                  'message' => 'Un compte bancaire existe déjà pour cet employé.',
+    //              ], 400);
+    //          }
      
-             $user->statut = self::STATUT_ACTIF;
-             $user->save();
+    //          $user->statut = self::STATUT_ACTIF;
+    //          $user->save();
      
-             $compte = Compte::create([
-                 'solde' => 0,
-                 'date_creation' => now(),
-                 'id_user' => $user->id_user,
-             ]);
+    //          $compte = Compte::create([
+    //             'numero_compte' => Compte::generateNumeroCompte($user), // Générer avant l'insertion
+    //             'solde' => 0,
+    //             'date_creation' => now(),
+    //             'id_user' => $user->id_user,
+    //         ]);
+            
      
-             $compte->numero_compte = Compte::generateNumeroCompte($compte->user);
-             $compte->save();
+    //         // $compte->numero_compte = Compte::generateNumeroCompte($compte->user);
+    //          $compte->save();
      
-             // Envoi d'un email à l'utilisateur
-             Mail::to($user->email)->send(new AccountActivated($user, $compte));
+    //          // Envoi d'un email à l'utilisateur
+    //          Mail::to($user->email)->send(new AccountActivated($user, $compte));
      
-             DB::commit();
+    //          DB::commit();
      
-             return response()->json([
-                 'status' => 'success',
-                 'message' => 'Le compte employé a été activé avec succès et un compte bancaire a été créé.',
-                 'user' => $user,
-                 'compte' => $compte,
-             ], 200);
+    //          return response()->json([
+    //              'status' => 'success',
+    //              'message' => 'Le compte employé a été activé avec succès et un compte bancaire a été créé.',
+    //              'user' => $user,
+    //              'compte' => $compte,
+    //          ], 200);
      
-         } catch (\Exception $e) {
-             DB::rollBack();
-             Log::error('Erreur lors de l\'activation de l\'utilisateur : ' . $e->getMessage());
-            print($e);
-             return response()->json([
-                 'status' => 'error',
-                 'message' => 'Une erreur est survenue lors de l\'activation ou de la création du compte.',
-                 'error' => $e->getMessage(),
-             ], 500);
-         }
-     }
+    //      } catch (\Exception $e) {
+    //          DB::rollBack();
+    //          Log::error('Erreur lors de l\'activation de l\'utilisateur : ' . $e->getMessage());
+    //         print($e);
+    //          return response()->json([
+    //              'status' => 'error',
+    //              'message' => 'Une erreur est survenue lors de l\'activation ou de la création du compte.',
+    //              'error' => $e->getMessage(),
+    //          ], 500);
+    //      }
+    //  }
+    public function activate(Request $request)
+{
+    $currentUser = Auth::user();
+
+    if (!$this->hasPermission($currentUser)) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+        ], 403);
+    }
+
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email|exists:users,email',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    DB::beginTransaction();
+
+    try {
+        $user = User::where('email', $request->email)->first();
+
+        if ($user->statut !== self::STATUT_EN_ATTENTE) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'L’utilisateur doit valider son OTP avant activation.',
+            ], 400);
+        }
+
+        $existingCompte = Compte::where('id_user', $user->id_user)->first();
+        if ($existingCompte) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Un compte bancaire existe déjà pour cet employé.',
+            ], 400);
+        }
+
+        $user->statut = self::STATUT_ACTIF;
+        $user->save();
+
+        // $compte = Compte::create([
+        //     'numero_compte' => Compte::generateNumeroCompte($user),
+        //     'solde' => 0,
+        //     'date_creation' => now(),
+        //     'id_user' => $user->id_user,
+        // ]);
+        $defaultPin = Compte::generateDefaultPin();
+
+        $compte = Compte::create([
+            'numero_compte' => Compte::generateNumeroCompte($user),
+            'solde' => 0,
+            'date_creation' => now(),
+            'id_user' => $user->id_user,
+            'pin' => Hash::make($defaultPin), // Fournir un PIN crypté
+        ]);
+        
+        // $defaultPin = Compte::generateDefaultPin();
+        // $compte->setPin($defaultPin);
+
+        // Envoi d'un email avec le numéro de compte et le PIN
+        Mail::to($user->email)->send(new AccountActivated($user, $compte, $defaultPin));
+
+        DB::commit();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Le compte employé a été activé avec succès et un compte bancaire a été créé.',
+            'user' => $user,
+            'compte' => $compte,
+        ], 200);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur lors de l\'activation de l\'utilisateur : ' . $e->getMessage());
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Une erreur est survenue lors de l\'activation ou de la création du compte.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
      
      private function hasPermission($user)
      {

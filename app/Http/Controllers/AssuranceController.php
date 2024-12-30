@@ -59,8 +59,8 @@ use Illuminate\Support\Facades\Auth;
         }
 
         $validated = $request->validate([
-            'code_ifc' => 'required|string|max:255',
-            'libelle' => 'nullable|string|max:255',
+            'code_ifc' => 'required|string|unique:assurances,code_ifc|max:255',
+            'libelle' => 'nullable|string|unique:assurances,libelle|max:255',
         ]);
 
         // Création de l'assurance

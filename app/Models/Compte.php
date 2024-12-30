@@ -4,39 +4,74 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Hash;
 
 class Compte extends Model
 {
     use HasFactory;
 
+    // Définir la clé primaire comme `numero_compte`
     protected $primaryKey = 'numero_compte';
+    public $incrementing = false; // Désactiver l'auto-incrémentation
+    protected $keyType = 'string'; // Spécifier que la clé est une chaîne
 
-    protected $fillable = ['solde', 'date_creation', 'id_user'];
+    // Champs pouvant être remplis via un formulaire ou une requête
+    protected $fillable = ['numero_compte', 'solde', 'date_creation', 'id_user', 'pin'];
 
+    // Relation avec le modèle User
     public function user()
     {
         return $this->belongsTo(User::class, 'id_user');
     }
 
+    // Relation avec le modèle Transaction
     public function transactions()
     {
         return $this->hasMany(Transaction::class, 'numero_compte');
     }
 
+    // Génération d'un numéro de compte unique
     public static function generateNumeroCompte($user)
-{
-    // Assurez-vous que l'utilisateur est sauvegardé et a un ID auto-incrémenté
-    $user->save();
+    {
+        if (!$user->id) {
+            $user->save();
+        }
 
-    // Récupérer l'ID de l'utilisateur après l'insertion
-    $idUser = $user->id;
+        $idUser = $user->id;
+        $date = now()->format('Ym');
+        $attempt = 0;
 
-    // Générer le numéro de compte avec l'ID utilisateur et la date actuelle
-    $date = now()->format('Ym');  // Exemple: 202412 pour décembre 2024
-    $numeroCompte = 'CPT-' . $date . '-' . str_pad($idUser, 6, '0', STR_PAD_LEFT);
+        do {
+            $randomSuffix = strtoupper(substr(uniqid(), -4));
+            $numeroCompte = 'CPT-' . $date . '-' . str_pad($idUser, 6, '0', STR_PAD_LEFT) . '-' . $randomSuffix;
 
-    return $numeroCompte;
-}
+            $exists = self::where('numero_compte', $numeroCompte)->exists();
+            $attempt++;
+        } while ($exists && $attempt < 5);
 
-    
+        if ($attempt >= 5) {
+            throw new \Exception("Impossible de générer un numéro de compte unique.");
+        }
+
+        return $numeroCompte;
+    }
+
+    // Génération d'un PIN par défaut
+    public static function generateDefaultPin()
+    {
+        return rand(1000, 9999); // PIN à 4 chiffres
+    }
+
+    // Définir le PIN crypté
+    public function setPin($plainPin)
+    {
+        $this->pin = Hash::make($plainPin);
+        $this->save();
+    }
+
+    // Vérifier le PIN
+    public function verifyPin($plainPin)
+    {
+        return Hash::check($plainPin, $this->pin);
+    }
 }

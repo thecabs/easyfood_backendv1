@@ -12,17 +12,20 @@ class AccountActivated extends Mailable
 
     public $user;
     public $compte;
+    public $pin; // Ajouter le PIN
 
     /**
      * Create a new message instance.
      *
      * @param $user
      * @param $compte
+     * @param $pin
      */
-    public function __construct($user, $compte)
+    public function __construct($user, $compte, $pin)
     {
         $this->user = $user;
         $this->compte = $compte;
+        $this->pin = $pin; // Initialiser le PIN
     }
 
     /**
@@ -37,6 +40,7 @@ class AccountActivated extends Mailable
                     ->with([
                         'nom' => $this->user->name,
                         'numeroCompte' => $this->compte->numero_compte,
+                        'pin' => $this->pin, // Passer le PIN à la vue
                     ]);
     }
 }

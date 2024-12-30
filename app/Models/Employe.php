@@ -18,6 +18,7 @@ class Employe extends Model
         return $this->belongsTo(Entreprise::class, 'id_entreprise');
     }
 
+    
     public function user()
     {
         return $this->belongsTo(User::class, 'id_user');

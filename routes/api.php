@@ -10,11 +10,14 @@ use App\Http\Controllers\EntrepriseController;
 use App\Http\Controllers\EmployeController;
 use App\Http\Controllers\PartenaireShopController;
 use App\Http\Controllers\CaissiereController;
+use App\Http\Controllers\CompteController;
+use App\Http\Controllers\TransactionController;
+
 
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\AdminController;
- use App\Http\Controllers\PartenaireShopGestController;
- use App\Http\Controllers\AssuranceGestController;
+use App\Http\Controllers\PartenaireShopGestController;
+use App\Http\Controllers\AssuranceGestController;
 use App\Http\Controllers\EntrepriseGestController;
 
 /*
@@ -89,9 +92,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
  Route::middleware(['auth:sanctum'])->group(function () {
     // Route pour enregistrer un gestionnaire assurance
     Route::post('/assurance-gest/register', [AssuranceGestController::class, 'register']);
+    Route::put('/assurance-gestupdate/{id_user}', [AssuranceGestController::class, 'updateProfile']);
 
     // Route pour confirmer l'OTP pour un gestionnaire assurance
-    Route::post('/assurance-gest/confirm-otp', [AssuranceGestController::class, 'confirmOtp']);
+    // Route::post('/assurance-gest/confirm-otp', [AssuranceGestController::class, 'confirmOtp']);
 });
 
 
@@ -113,75 +117,79 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Route pour enregistrer un gestionnaire pour une entreprise
     Route::post('/entreprise-gest/register', [EntrepriseGestController::class, 'register']);
     
-    // Route pour confirmer l'OTP pour un gestionnaire d'entreprise
-    Route::post('/entreprise-gest/confirm-otp', [EntrepriseGestController::class, 'confirmOtp']);
+    // Route pour update un gestionnaire d'entreprise
+    Route::put('/entreprise-gestupdate/{id_user}', [EntrepriseGestController::class, 'updateProfile']);
 });
 
 
 
-// ENTREPRISES
+// Employes
 
-
-
-Route::prefix('employes')->group(function () {
-    Route::get('/', [EmployeController::class, 'index']); // Liste des employés
-    Route::get('/{id}', [EmployeController::class, 'show']); // Affiche un employé spécifique
-    Route::post('/', [EmployeController::class, 'create']); // Crée un nouvel employé
-    Route::put('/{id}', [EmployeController::class, 'update']); // Met à jour un employé
-    Route::delete('/{id}', [EmployeController::class, 'destroy']); // Supprime un employé
-});
-
-Route::prefix('employe')->group(function () {
-    Route::post('/create', [EmployeController::class, 'create']);
-    Route::post('/validate-otp', [EmployeController::class, 'validateOtp']);
-});
-
-
-
-
-//employes 
-
-
-
-
-
-Route::prefix('employes')->group(function () {
-    Route::get('/', [EmployeController::class, 'index']); // Liste des employés
-    Route::get('/{id}', [EmployeController::class, 'show']); // Affiche un employé spécifique
-     Route::put('/{id}', [EmployeController::class, 'update']); // Met à jour un employé
-    Route::delete('/{id}', [EmployeController::class, 'destroy']); // Supprime un employé
-});
-
-Route::post('/activate', [EmployeController::class, 'activate']);
-
-
-Route::prefix('employe')->group(function () {
-    Route::post('/register', [EmployeController::class, 'register']);
-    Route::post('/validate-otp', [EmployeController::class, 'validateOtp']);
-   
-});
- 
-
-Route::middleware(['auth:sanctum'])->group(function () {
-
- // Mettre à jour un employé
- Route::put('/employes', [EmployeController::class, 'update']);
-});
 
 Route::middleware(['auth:sanctum'])->group(function () {
 
     // activer un compte
    
-
     Route::post('/employe/activate', [EmployeController::class, 'activate']);
     // Liste des employés
     Route::get('/employes', [EmployeController::class, 'index']);
 
     // Affiche un employé spécifique
     Route::get('/employes/{id}', [EmployeController::class, 'show']);
-
    
 });
+
+ 
+ 
+ //pour l'appli mobile
+
+ Route::prefix('employe')->group(function () {
+    Route::post('/register', [EmployeController::class, 'register']);
+    Route::post('/validate-otp', [EmployeController::class, 'validateOtp']);
+   
+});
+ 
+Route::middleware(['auth:sanctum'])->group(function () {
+
+    // Mettre à jour un employé
+    Route::put('/employes', [EmployeController::class, 'update']);
+   });
+
+
+// compte easyfood pour les employes 
+
+// Route pour récupérer les détails d'un compte
+Route::get('/compte/{numeroCompte}', [CompteController::class, 'getCompteDetails']);
+
+// Route pour mettre à jour le PIN d'un compte
+Route::post('/compte/{numeroCompte}/update-pin', [CompteController::class, 'updatePin']);
+
+
+//les transactions pour les comptes
+
+
+Route::middleware(['auth:sanctum'])->group(function () {
+
+
+Route::post('/transactions', [TransactionController::class, 'store']);
+
+
+});
+
+Route::post('/depot', [TransactionController::class, 'effectuerTransaction']);
+
+
+
+
+ 
+
+
+
+
+ 
+
+
+
 
 
 

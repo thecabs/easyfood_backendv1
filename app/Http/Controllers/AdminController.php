@@ -18,7 +18,7 @@ class AdminController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:8',
             'nom' => 'required|string|max:255',
-            'role' => 'required|in:administrateur', // Validation stricte du rôle
+            'role' => 'required|in:administrateur', 
         ]);
     
         if ($validator->fails()) {
