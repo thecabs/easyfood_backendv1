@@ -8,6 +8,6 @@
     <p>Votre code OTP est : <strong>{{ $otp }}</strong></p>
 
     <p>Cordialement,</p>
-    <p>L'équipe TacTicTECH</p>
+    <p>L'équipe {{ config('app.name') }}</p>
 </body>
 </html>

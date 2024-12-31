@@ -22,16 +22,17 @@ class CompteController extends Controller
     /**
      * Vérifier si l'utilisateur actuel a les permissions nécessaires.
      */
-    private function hasPermission($user)
-    {
-        return in_array($user->role, ['superadmin', 'entreprise_gest','employe','administrateur']);
-    }
-
+   
     /**
      * Récupérer les détails d'un compte.
      */
     public function getCompteDetails(Request $request, $numeroCompte)
     {
+        $currentUser = Auth::user();
+        if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest','employe','administrateur'])) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
+
         $compte = Compte::where('numero_compte', $numeroCompte)->first();
 
         if (!$compte) {
@@ -52,6 +53,10 @@ class CompteController extends Controller
      */
     public function updatePin(Request $request, $numeroCompte)
     {
+        $currentUser = Auth::user();
+        if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest','employe','administrateur'])) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
         $request->validate([
             'old_pin' => 'required',
             'new_pin' => 'required|min:4|max:4',

@@ -116,64 +116,75 @@ class EntrepriseGestController extends Controller
      * Met à jour les informations d'un gestionnaire.
      */
     public function updateProfile(Request $request, $id_user)
-    {
-        $currentUser = Auth::user();
-        if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest'])) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
+{
+    $currentUser = Auth::user();
 
-        // Validation des données
-        $validated = $request->validate([
-            'nom' => 'nullable|string|max:255',
-            'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
-            'tel' => 'nullable|string|max:20',
-        ]);
-
-        DB::beginTransaction();
-
-        try {
-            $userToUpdate = User::findOrFail($id_user);
-
-            // Mettre à jour les champs fournis
-            if (isset($validated['nom'])) {
-                $userToUpdate->nom = $validated['nom'];
-            }
-            if (isset($validated['email'])) {
-                $userToUpdate->email = $validated['email'];
-            }
-            if (isset($validated['tel'])) {
-                $userToUpdate->tel = $validated['tel'];
-            }
-
-            $userToUpdate->save();
-
-            DB::commit();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Profil mis à jour avec succès.',
-                'user' => [
-                    'id_user' => $userToUpdate->id_user,
-                    'nom' => $userToUpdate->nom,
-                    'email' => $userToUpdate->email,
-                    'tel' => $userToUpdate->tel,
-                    'role' => $userToUpdate->role,
-                    'statut' => $userToUpdate->statut,
-                ],
-            ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            DB::rollBack();
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Utilisateur introuvable.',
-            ], 404);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Erreur lors de la mise à jour.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+    // Vérification des rôles
+    if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest'])) {
+        return response()->json(['message' => 'Accès non autorisé.'], 403);
     }
+
+    // Validation des données
+    $validated = $request->validate([
+        'nom' => 'nullable|string|max:255',
+        'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
+        'tel' => 'nullable|string|max:20',
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        $userToUpdate = User::findOrFail($id_user);
+
+        // Vérifier que l'utilisateur a bien le rôle `entreprise_gest`
+        if ($userToUpdate->role !== 'entreprise_gest') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'L\'utilisateur spécifié n\'a pas le rôle entreprise_gest.',
+            ], 403);
+        }
+
+        // Mettre à jour les champs fournis
+        if (isset($validated['nom'])) {
+            $userToUpdate->nom = $validated['nom'];
+        }
+        if (isset($validated['email'])) {
+            $userToUpdate->email = $validated['email'];
+        }
+        if (isset($validated['tel'])) {
+            $userToUpdate->tel = $validated['tel'];
+        }
+
+        $userToUpdate->save();
+
+        DB::commit();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profil mis à jour avec succès.',
+            'user' => [
+                'id_user' => $userToUpdate->id_user,
+                'nom' => $userToUpdate->nom,
+                'email' => $userToUpdate->email,
+                'tel' => $userToUpdate->tel,
+                'role' => $userToUpdate->role,
+                'statut' => $userToUpdate->statut,
+            ],
+        ], 200);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        DB::rollBack();
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Utilisateur introuvable.',
+        ], 404);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Erreur lors de la mise à jour.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
 }

@@ -19,7 +19,7 @@ class CreateUsersTable extends Migration
             $table->enum('role', [
                 'superadmin', 'administrateur', 'employe', 
                 'entreprise_gest', 'partenaire_shop_gest', 
-                'caissiere_gest', 'assurance_gest'
+                'caissiere', 'assurance_gest'
             ])->default('employe');
             $table->unsignedBigInteger('id_entreprise')->nullable(); // Référence à l'entreprise
             $table->unsignedBigInteger('id_partenaire_shop')->nullable(); // Référence au partenaire shop

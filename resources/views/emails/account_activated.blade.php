@@ -11,6 +11,6 @@
     <p>Veuillez conserver ce code en lieu sûr et le changer dès votre première connexion.</p>
     <p>Merci de votre confiance.</p>
     <p>Cordialement,</p>
-    <p>L'équipe TacTicTECH</p>
+    <p>L'équipe {{ config('app.name') }}</p>
 </body>
 </html>

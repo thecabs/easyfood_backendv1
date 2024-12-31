@@ -6,29 +6,23 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class AccountCreatedMail extends Mailable
+class AccountCreatedCaissMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $user;
     public $password;
-    public $compte;
-    public $pin;
 
     /**
      * Create a new message instance.
      *
      * @param $user
      * @param $password
-     * @param $compte
-     * @param $pin
      */
-    public function __construct($user, $password, $compte, $pin)
+    public function __construct($user, $password)
     {
         $this->user = $user;
         $this->password = $password;
-        $this->compte = $compte;
-        $this->pin = $pin;
     }
 
     /**
@@ -38,13 +32,11 @@ class AccountCreatedMail extends Mailable
      */
     public function build()
     {
-        return $this->view('emails.account_created')
-            ->subject('Votre compte gestionnaire assurance a été créé')
+        return $this->view('emails.account_createdcaiss')
+            ->subject('Votre compte de caissière a été créé')
             ->with([
                 'user' => $this->user,
                 'password' => $this->password,
-                'compte' => $this->compte,
-                'pin' => $this->pin,
             ]);
     }
 }

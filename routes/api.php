@@ -12,6 +12,8 @@ use App\Http\Controllers\PartenaireShopController;
 use App\Http\Controllers\CaissiereController;
 use App\Http\Controllers\CompteController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\CategorieController;
+use App\Http\Controllers\ProduitController;
 
 
 use App\Http\Controllers\SuperAdminController;
@@ -158,11 +160,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // compte easyfood pour les employes 
 
+Route::middleware(['auth:sanctum'])->group(function () {
 // Route pour récupérer les détails d'un compte
 Route::get('/compte/{numeroCompte}', [CompteController::class, 'getCompteDetails']);
 
 // Route pour mettre à jour le PIN d'un compte
 Route::post('/compte/{numeroCompte}/update-pin', [CompteController::class, 'updatePin']);
+
+    
+   });
+
 
 
 //les transactions pour les comptes
@@ -172,27 +179,107 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 
 Route::post('/transactions', [TransactionController::class, 'store']);
+Route::post('/depot', [TransactionController::class, 'effectuerTransaction']);
 
 
 });
 
-Route::post('/depot', [TransactionController::class, 'effectuerTransaction']);
 
 
+ //PartenaireShop 
+
+ 
+Route::middleware(['auth:sanctum'])->group(function () {
+
+    Route::prefix('partenaire-shop')->group(function () {
+        // Créer un partenaire shop
+        Route::post('/register', [PartenaireShopController::class, 'store']);
+     
+        // Mettre à jour un partenaire shop
+        Route::put('update/{id_partenaire}', [PartenaireShopController::class, 'update']);
+     
+        // Supprimer un partenaire shop
+        Route::delete('delete/{id_partenaire}', [PartenaireShopController::class, 'destroy']);
+     
+        // Voir les détails d'un partenaire shop
+        Route::get('show/{id_partenaire}', [PartenaireShopController::class, 'show']);
+     
+        // Lister tous les partenaires shops
+        Route::get('/', [PartenaireShopController::class, 'index']);
+     });
+    
+    
+    
+    });
+
+
+// gestionnaire du shop 
+
+Route::middleware(['auth:sanctum'])->group(function () {
+
+    Route::prefix('partenaire-shop/gest')->group(function () {
+        // Créer un gestionnaire pour un partenaire shop
+        Route::post('/register', [PartenaireShopGestController::class, 'register']);
+     
+        // Mettre à jour un gestionnaire
+        Route::put('/update/{id_user}', [PartenaireShopGestController::class, 'updateProfile']);
+     
+       
+     });
+    
+    
+    });
+
+
+//Caissiere
 
 
  
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Routes pour les caissières
+    Route::get('caissieres', [CaissiereController::class, 'index']); // Lister toutes les caissières
+    Route::post('caissieres/register', [CaissiereController::class, 'register']); // Ajouter une caissière
+    Route::get('caissieres/{id_caissiere}', [CaissiereController::class, 'show']); // Afficher une caissière spécifique
+    Route::put('caissieres/{id_caissiere}', [CaissiereController::class, 'update']); // Mettre à jour une caissière
+    Route::delete('caissieres/{id_caissiere}', [CaissiereController::class, 'destroy']); // Supprimer une caissière
+});
+
+
+
+//les routes pour le partenaire shop
+// categories
 
 
 
 
- 
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('categories')->group(function () {
+        Route::get('/', [CategorieController::class, 'index']); // Liste des catégories
+        Route::post('/add', [CategorieController::class, 'store']); // Créer une catégorie
+        Route::get('/{id}', [CategorieController::class, 'show']); // Afficher une catégorie spécifique
+        Route::put('update/{id}', [CategorieController::class, 'update']); // Mettre à jour une catégorie
+        Route::delete('/{id}', [CategorieController::class, 'destroy']); // Supprimer une catégorie
+    });
+    
+  });
+
+
+// les produits
 
 
 
-
-
-
+Route::middleware(['auth:sanctum'])->group(function () {
+     
+    Route::prefix('produits')->group(function () {
+        Route::get('/', [ProduitController::class, 'index']); // Liste des produits
+        Route::post('/add', [ProduitController::class, 'store']); // Créer un produit
+        Route::get('/{id}', [ProduitController::class, 'show']); // Afficher un produit spécifique
+        Route::put('update/{id}', [ProduitController::class, 'update']); // Mettre à jour un produit
+        Route::delete('/{id}', [ProduitController::class, 'destroy']); // Supprimer un produit
+    });
+    
+    
+  });
 
 
 
@@ -217,38 +304,8 @@ Route::post('/login', [AuthController::class, 'login']);
 
  
 
- 
 
  
 
 
 
-//entreprises
-
-
-
-
-
-
-
-
-
-
-//PartenaireShop 
-
-
-Route::get('/partenaires', [PartenaireShopController::class, 'index']);
-Route::get('/partenaires/{id}', [PartenaireShopController::class, 'show']);
-Route::post('/partenaires', [PartenaireShopController::class, 'store']);
-Route::put('/partenaires/{id}', [PartenaireShopController::class, 'update']);
-Route::delete('/partenaires/{id}', [PartenaireShopController::class, 'destroy']);
-
-
-//Caissiere
-
-
-Route::get('/caissieres', [CaissiereController::class, 'index']);
-Route::get('/caissieres/{id}', [CaissiereController::class, 'show']);
-Route::post('/caissieres', [CaissiereController::class, 'store']);
-Route::put('/caissieres/{id}', [CaissiereController::class, 'update']);
-Route::delete('/caissieres/{id}', [CaissiereController::class, 'destroy']);

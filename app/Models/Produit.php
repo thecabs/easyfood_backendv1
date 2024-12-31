@@ -11,7 +11,15 @@ class Produit extends Model
 
     protected $primaryKey = 'id_produit';
 
-    protected $fillable = ['nom', 'id_categorie', 'prix_ifc', 'prix_shop', 'id_partenaire', 'statut'];
+    protected $fillable = [
+        'nom',
+        'id_categorie',
+        'prix_ifc',
+        'prix_shop',
+        'id_partenaire',
+        'statut',
+        'code_barre', // Nouveau champ
+    ];
 
     public function categorie()
     {

@@ -16,6 +16,7 @@ class CreateProduitsTable extends Migration
             $table->decimal('prix_shop', 15, 2);
             $table->unsignedBigInteger('id_partenaire')->nullable();
             $table->string('statut');
+            $table->string('code_barre')->unique(); // Nouveau champ
             $table->timestamps();
         });
     }

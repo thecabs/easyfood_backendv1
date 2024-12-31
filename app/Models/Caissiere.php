@@ -12,16 +12,17 @@ class Caissiere extends Model
     protected $primaryKey = 'id_caissiere';
 
     protected $fillable = [
-        'id_partenaire_shop', // Référence au partenaire shop
+        'id_partenaire', // Référence au partenaire shop
         'id_user',            // Référence à l'utilisateur
     ];
 
     // Relation : Une caissière appartient à un partenaire shop
     public function partenaireShop()
     {
-        return $this->belongsTo(PartenaireShop::class, 'id_partenaire_shop');
+        return $this->belongsTo(PartenaireShop::class, 'id_partenaire');
     }
 
+     
     // Relation : Une caissière est liée à un utilisateur
     public function user()
     {

@@ -10,7 +10,7 @@ class CreatePartenaireShopsTable extends Migration
     {
         Schema::create('partenaire_shops', function (Blueprint $table) {
             $table->id('id_partenaire');
-            $table->unsignedBigInteger('id_gestionnaire'); // ID utilisateur
+            $table->unsignedBigInteger('id_gestionnaire')->nullable(); // ID utilisateur
             $table->string('nom');
             $table->string('adresse');
             $table->string('ville');
