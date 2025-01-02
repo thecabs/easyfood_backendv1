@@ -294,22 +294,25 @@ class EmployeController extends Controller
     public function index()
     {
         $currentUser = Auth::user();
-
+    
         if (!in_array($currentUser->role, ['superadmin', 'administrateur', 'entreprise_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
             ], 403);
         }
-
-        $employes = User::where('role', 'employe')->get();
-
+    
+         $employes = User::where('role', 'employe')
+            ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')  
+            ->get();
+             
         return response()->json([
             'status' => 'success',
             'message' => 'Liste des employés récupérée avec succès.',
             'data' => $employes,
         ], 200);
     }
+    
 
     /**
      * Afficher un employé spécifique.
@@ -318,30 +321,34 @@ class EmployeController extends Controller
     public function show($id)
     {
         $currentUser = Auth::user();
-
+    
         if (!in_array($currentUser->role, ['superadmin', 'administrateur', 'entreprise_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
             ], 403);
         }
-
-        $employe = User::where('id_user', $id)->where('role', 'employe')->first();
-
+    
+        // Charger l'employé avec le nom de son entreprise
+        $employe = User::where('id_user', $id)
+            ->where('role', 'employe')
+            ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')  
+            ->first();
+    
         if (!$employe) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Employé non trouvé.',
             ], 404);
         }
-
+    
         return response()->json([
             'status' => 'success',
             'message' => 'Employé récupéré avec succès.',
             'data' => $employe,
         ], 200);
     }
-
+    
     /**
      * Mettre à jour un employé.
      * Accessible uniquement par l'employé lui-même.

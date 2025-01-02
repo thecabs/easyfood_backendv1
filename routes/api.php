@@ -284,12 +284,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 
 
-// USER
-Route::post('/register', [UserController::class, 'createAccount']);
-
-Route::post('/validate-otp', [UserController::class, 'validateOtp']);
-
-Route::post('/activateAccount', [UserController::class, 'activateAccount']);
 
 
 
@@ -299,10 +293,18 @@ Route::post('/activateAccount', [UserController::class, 'activateAccount']);
 
 //AUTH
 
+//login
 Route::post('/login', [AuthController::class, 'login']);
  
+//logout
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
 
+ //delete user
+Route::middleware('auth:sanctum')->delete('delete/users/{id}', [UserController::class, 'destroy']);
+
+// RECHERCHE  
+
+Route::middleware('auth:sanctum')->post('/users/search-by-role', [UserController::class, 'searchByRole']);
 
 
  

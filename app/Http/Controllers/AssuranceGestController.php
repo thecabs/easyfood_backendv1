@@ -59,7 +59,7 @@ class AssuranceGestController extends Controller
             $assurance->save();
 
             // Envoyer les informations de connexion par email
-            Mail::to($user->email)->send(new \App\Mail\AccountCreatedMail($user, $generatedPassword));
+            Mail::to($user->email)->send(new \App\Mail\AccountCreatedMailA($user, $generatedPassword));
 
             DB::commit();
 

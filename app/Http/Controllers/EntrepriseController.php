@@ -72,12 +72,12 @@ class EntrepriseController extends Controller
         $entreprise = Entreprise::create($validated);
 
         return response()->json([
-         
+            'status' => 'success',
             'message' => 'Entreprise créée avec succès.',
             'data' => $entreprise,
         ], 201);
     }
-
+   
     /**
      * Met à jour une entreprise existante.
      */

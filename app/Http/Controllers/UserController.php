@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -17,70 +18,72 @@ class UserController extends Controller
     const STATUT_EN_ATTENTE = 'en_attente';
     const STATUT_ACTIF = 'actif';
 
-    /**
-     * Reusable validation rules.
+    
+     /**
+     * Recherche les utilisateurs en fonction de leurs rôles (exclu superadmin et administrateur).
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    private function userValidationRules(array $additionalRules = []): array
+    public function searchByRole(Request $request)
     {
-        return array_merge([
-            'email' => 'required|email|unique:users,email',
-            'mot_de_passe' => 'required|min:8',
-            'nom' => 'required|string|max:255',
-        ], $additionalRules);
-    }
-
-    /**
-     * Création d'un compte utilisateur.
-     */
-    public function createAccount(Request $request)
-    {
-        $validator = Validator::make($request->all(), $this->userValidationRules([
-            'tel' => 'nullable|string|max:20',
-            'quartier' => 'nullable|string|max:255',
-            'ville' => 'nullable|string|max:255',
-            'id_role' => 'required|exists:roles,id_role',
-            'id_assurance' => 'nullable|exists:assurances,id_assurance',
-            'id_entreprise' => 'nullable|exists:entreprises,id_entreprise',
-            'id_partenaire_shop' => 'nullable|exists:partenaire_shops,id_partenaire',
-        ]));
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        DB::beginTransaction();
-
+        $user = Auth::user();
+    
+        // Valider les paramètres d'entrée
+        $request->validate([
+            'role' => 'required|in:superadmin,administrateur,employe,entreprise_gest,partenaire_shop_gest,caissiere,assurance_gest',
+        ]);
+    
+        $role = $request->role;
+    
         try {
-            $user = User::create([
-                'email' => $request->email,
-                'mot_de_passe' => Hash::make($request->mot_de_passe),
-                'nom' => $request->nom,
-                'tel' => $request->tel,
-                'quartier' => $request->quartier,
-                'ville' => $request->ville,
-                'id_role' => $request->id_role,
-                'id_assurance' => $request->id_assurance,
-                'id_entreprise' => $request->id_entreprise,
-                'id_partenaire_shop' => $request->id_partenaire_shop,
-                'statut' => self::STATUT_INACTIF,
-            ]);
-
-            $otp = Otp::generateOtp($user->email);
-            Mail::to($user->email)->send(new \App\Mail\OtpMail($otp));
-
-            DB::commit();
-
+            $usersQuery = User::query();
+    
+            // Conditions basées sur le rôle de l'utilisateur connecté
+            if (in_array($user->role, ['superadmin', 'administrateur'])) {
+                // Superadmin et administrateur peuvent voir tous les utilisateurs
+            } elseif ($user->role === 'partenaire_shop_gest') {
+                // Partenaire shop : peut voir uniquement les caissières de son shop
+                if ($role !== 'caissiere') {
+                    return response()->json([
+                        'message' => 'Vous n\'êtes pas autorisé à rechercher des utilisateurs avec ce rôle.'
+                    ], 403);
+                }
+                $usersQuery->where('role', 'caissiere')
+                           ->where('id_partenaire_shop', $user->id_partenaire_shop);
+            } elseif ($user->role === 'entreprise_gest') {
+                // Entreprise gest : peut voir uniquement les employés de son entreprise
+                if ($role !== 'employe') {
+                    return response()->json([
+                        'message' => 'Vous n\'êtes pas autorisé à rechercher des utilisateurs avec ce rôle.'
+                    ], 403);
+                }
+                $usersQuery->where('role', 'employe')
+                           ->where('id_entreprise', $user->id_entreprise);
+            } elseif ($user->role === 'assurance_gest') {
+                // Assurance gest : peut voir uniquement les entreprises liées à son assurance
+                if ($role !== 'entreprise_gest') {
+                    return response()->json([
+                        'message' => 'Vous n\'êtes pas autorisé à rechercher des utilisateurs avec ce rôle.'
+                    ], 403);
+                }
+                $usersQuery->where('role', 'entreprise_gest')
+                           ->where('id_assurance', $user->id_user);
+            } else {
+                // Rôles non autorisés
+                return response()->json([
+                    'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
+                ], 403);
+            }
+    
+            // Appliquer le filtre par rôle
+            $users = $usersQuery->where('role', $role)->get();
+    
             return response()->json([
                 'status' => 'success',
-                'message' => 'Compte créé avec succès. Un OTP a été envoyé à votre email.',
-                'user' => $user,
-            ], 201);
+                'users' => $users,
+            ], 200);
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur lors de la création du compte utilisateur : ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
                 'message' => 'Une erreur est survenue, veuillez réessayer plus tard.',
@@ -88,79 +91,52 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * Validate OTP.
-     */
-    public function validateOtp(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
-            'otp' => 'required|numeric',
-        ]);
 
-        if ($validator->fails()) {
+    public function destroy($id)
+{
+    $currentUser = Auth::user();
+
+    // Vérifier si l'utilisateur connecté est autorisé à supprimer d'autres utilisateurs
+    if (!in_array($currentUser->role, ['superadmin', 'administrateur'])) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+        ], 403);
+    }
+
+    try {
+        // Récupérer l'utilisateur à supprimer
+        $user = User::find($id);
+
+        if (!$user) {
             return response()->json([
                 'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Utilisateur non trouvé.',
+            ], 404);
         }
 
-        $otpRecord = Otp::where('email', $request->email)
-            ->where('otp', $request->otp)
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if (!$otpRecord) {
+        // Vérifier que l'utilisateur à supprimer n'est pas un superadmin ou un administrateur
+        if (in_array($user->role, ['superadmin', 'administrateur'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'OTP invalide ou expiré.',
-            ], 400);
+                'message' => 'Impossible de supprimer un superadmin ou un administrateur.',
+            ], 403);
         }
 
-        $user = User::where('email', $request->email)->first();
-        $user->statut = self::STATUT_EN_ATTENTE;
-        $user->save();
-
-        $otpRecord->delete();
+        // Supprimer l'utilisateur
+        $user->delete();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'OTP validé avec succès. Le compte est maintenant en attente d\'activation.',
+            'message' => 'Utilisateur supprimé avec succès.',
         ], 200);
-    }
-
-    /**
-     * Activate account by email or ID.
-     */
-    public function activateAccount(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required_without:id_user|email|exists:users,email',
-            'id_user' => 'required_without:email|exists:users,id_user',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $user = $request->email ? User::where('email', $request->email)->first() : User::find($request->id_user);
-
-        if ($user->statut === self::STATUT_ACTIF) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Le compte est déjà actif.',
-            ], 400);
-        }
-
-        $user->statut = self::STATUT_ACTIF;
-        $user->save();
-
+    } catch (\Exception $e) {
         return response()->json([
-            'status' => 'success',
-            'message' => 'Le compte a été activé avec succès.',
-        ], 200);
+            'status' => 'error',
+            'message' => 'Une erreur est survenue lors de la suppression de l\'utilisateur.',
+        ], 500);
     }
+}
+
+    
 }
