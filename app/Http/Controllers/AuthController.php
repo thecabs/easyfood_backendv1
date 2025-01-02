@@ -77,4 +77,40 @@ class AuthController extends Controller
             ], 500);
         }
     }
+    /**
+ * Logout API.
+ *
+ * @param Request $request
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function logout(Request $request)
+{
+    try {
+        // Récupérer l'utilisateur actuellement authentifié
+        $user = $request->user();
+
+        if ($user) {
+            // Révoquer tous les jetons de l'utilisateur
+            $user->tokens()->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Déconnexion réussie.',
+            ], 200);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Utilisateur non authentifié.',
+        ], 401);
+    } catch (\Exception $e) {
+        Log::error('Erreur lors de la déconnexion : ' . $e->getMessage());
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Une erreur est survenue, veuillez réessayer plus tard.',
+        ], 500);
+    }
+}
+
 }
