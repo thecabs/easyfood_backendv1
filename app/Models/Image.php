@@ -11,15 +11,11 @@ class Image extends Model
 
     protected $primaryKey = 'id_image';
 
-    protected $fillable = ['url_photo', 'id_produit', 'id_utilisateur'];
+    protected $fillable = ['url_photo', 'id_produit'];
 
     public function produit()
     {
         return $this->belongsTo(Produit::class, 'id_produit');
     }
 
-    public function utilisateur()
-    {
-        return $this->belongsTo(User::class, 'id_utilisateur');
-    }
 }

@@ -12,12 +12,10 @@ class CreateImagesTable extends Migration
             $table->id('id_image');
             $table->string('url_photo');
             $table->unsignedBigInteger('id_produit')->nullable();
-            $table->unsignedBigInteger('id_utilisateur')->nullable();
-            $table->timestamps();
+             $table->timestamps();
 
             $table->foreign('id_produit')->references('id_produit')->on('produits')->onDelete('cascade');
-            $table->foreign('id_utilisateur')->references('id_user')->on('users')->onDelete('cascade');
-        });
+         });
     }
 
     public function down()

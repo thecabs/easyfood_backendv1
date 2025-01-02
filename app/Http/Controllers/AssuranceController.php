@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Assurance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class AssuranceController extends Controller
 {
@@ -14,7 +15,7 @@ class AssuranceController extends Controller
     public function index()
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
@@ -73,15 +74,32 @@ class AssuranceController extends Controller
         $validated = $request->validate([
             'code_ifc' => 'required|string|unique:assurances,code_ifc|max:255',
             'libelle' => 'nullable|string|unique:assurances,libelle|max:255',
+            'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096',
         ]);
 
-        $assurance = Assurance::create($validated);
+        try {
+            $logoPath = null;
+            if ($request->hasFile('logo')) {
+                $logoName = time() . '.' . $request->logo->extension();
+                $logoPath = $request->logo->storeAs('logos/assurances', $logoName, 'public');
+            }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Assurance créée avec succès.',
-            'data' => $assurance,
-        ], 201);
+            $validated['logo'] = $logoPath ? 'storage/' . $logoPath : null;
+
+            $assurance = Assurance::create($validated);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Assurance créée avec succès.',
+                'data' => $assurance,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors de la création de l\'assurance.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -109,15 +127,35 @@ class AssuranceController extends Controller
         $validated = $request->validate([
             'code_ifc' => 'sometimes|required|string|max:255',
             'libelle' => 'nullable|string|max:255',
+            'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096',
         ]);
 
-        $assurance->update($validated);
+        try {
+            // Suppression de l'ancien logo si un nouveau est téléversé
+            if ($request->hasFile('logo')) {
+                if ($assurance->logo) {
+                    Storage::disk('public')->delete(str_replace('storage/', '', $assurance->logo));
+                }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Assurance mise à jour avec succès.',
-            'data' => $assurance,
-        ], 200);
+                $logoName = time() . '.' . $request->logo->extension();
+                $logoPath = $request->logo->storeAs('logos/assurances', $logoName, 'public');
+                $validated['logo'] = 'storage/' . $logoPath;
+            }
+
+            $assurance->update($validated);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Assurance mise à jour avec succès.',
+                'data' => $assurance,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors de la mise à jour de l\'assurance.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -142,11 +180,24 @@ class AssuranceController extends Controller
             ], 404);
         }
 
-        $assurance->delete();
+        try {
+            // Suppression du logo associé
+            if ($assurance->logo) {
+                Storage::disk('public')->delete(str_replace('storage/', '', $assurance->logo));
+            }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Assurance supprimée avec succès.',
-        ], 200);
+            $assurance->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Assurance supprimée avec succès.',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors de la suppression de l\'assurance.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

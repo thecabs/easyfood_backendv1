@@ -1,4 +1,5 @@
 <?php
+// database/migrations/xxxx_xx_xx_create_assurances_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -13,6 +14,7 @@ class CreateAssurancesTable extends Migration
             $table->unsignedBigInteger('id_gestionnaire')->nullable(); // Référence à l'utilisateur
             $table->string('code_ifc');
             $table->string('libelle'); // Nom de l'assurance
+            $table->string('logo')->nullable(); // Nouveau champ pour le logo
             $table->timestamps();
 
             // Définir la clé étrangère

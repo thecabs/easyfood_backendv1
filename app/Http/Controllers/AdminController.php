@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -18,7 +19,7 @@ class AdminController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:8',
             'nom' => 'required|string|max:255',
-            'role' => 'required|in:administrateur', 
+            'role' => 'required|in:administrateur',
         ]);
     
         if ($validator->fails()) {
@@ -28,13 +29,12 @@ class AdminController extends Controller
             ], 422);
         }
     
-        // Créez l'utilisateur avec statut forcé à 'actif'
         $user = User::create([
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'nom' => $request->nom,
             'role' => 'administrateur',
-            'statut' => 'actif',  
+            'statut' => 'actif',
         ]);
     
         return response()->json([
@@ -49,9 +49,104 @@ class AdminController extends Controller
             ],
         ], 201);
     }
+
+    /**
+     * Mise à jour du profil d'un utilisateur.
+     */
+    public function updateProfile(Request $request, $id_user)
+    {
+        $currentUser = auth()->user();
+    
+        // Vérification des autorisations de l'utilisateur actuel
+        if (!in_array($currentUser->role, ['superadmin', 'administrateur'])) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
+    
+        // Récupération de l'utilisateur cible
+        $user = User::findOrFail($id_user);
+    
+        // Empêcher la mise à jour d'un autre superadmin
+        if ($user->role === 'superadmin' && $currentUser->id_user !== $user->id_user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vous ne pouvez pas modifier le profil d\'un autre superadmin.',
+            ], 403);
+        }
+    
+        // Validation des données
+        $validated = $request->validate([
+            'nom' => 'nullable|string|max:255',
+            'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
+            'tel' => 'nullable|string|max:20',
+            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
+    
+        // Mise à jour des données utilisateur
+        if ($request->has('nom')) {
+            $user->nom = $validated['nom'];
+        }
+        if ($request->has('email')) {
+            $user->email = $validated['email'];
+        }
+        if ($request->has('tel')) {
+            $user->tel = $validated['tel'];
+        }
+        if ($request->hasFile('photo_profil')) {
+            // Supprimer l'ancienne photo si elle existe
+            if ($user->photo_profil && Storage::exists(str_replace('storage/', '', $user->photo_profil))) {
+                Storage::delete(str_replace('storage/', '', $user->photo_profil));
+            }
+    
+            $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
+            $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
+            $user->photo_profil = 'storage/' . $filePath;
+        }
+        if ($request->has('password')) {
+            $user->password = Hash::make($validated['password']);
+        }
+    
+        $user->save();
+    
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profil mis à jour avec succès.',
+            'user' => [
+                'id_user' => $user->id_user,
+                'email' => $user->email,
+                'nom' => $user->nom,
+                'tel' => $user->tel,
+                'photo_profil' => $user->photo_profil,
+                'role' => $user->role,
+                'statut' => $user->statut,
+            ],
+        ], 200);
+    }
     
 
+    /**
+     * Suppression d'un utilisateur.
+     */
+    public function deleteUser($id_user)
+    {
+        $currentUser = auth()->user();
 
+        if ($currentUser->role !== 'superadmin') {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
 
-   
+        $user = User::findOrFail($id_user);
+
+        // Supprimer la photo de profil si elle existe
+        if ($user->photo_profil && Storage::exists(str_replace('storage/', '', $user->photo_profil))) {
+            Storage::delete(str_replace('storage/', '', $user->photo_profil));
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Utilisateur supprimé avec succès.',
+        ], 200);
+    }
 }

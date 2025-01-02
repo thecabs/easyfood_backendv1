@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Entreprise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class EntrepriseController extends Controller
 {
@@ -14,7 +15,7 @@ class EntrepriseController extends Controller
     public function index()
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
@@ -30,7 +31,7 @@ class EntrepriseController extends Controller
     public function show($id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'administrateur', 'assurance_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
@@ -46,12 +47,12 @@ class EntrepriseController extends Controller
     }
 
     /**
-     * Crée une nouvelle entreprise.
+     * Crée une nouvelle entreprise avec un logo.
      */
     public function store(Request $request)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'administrateur', 'assurance_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
@@ -64,22 +65,39 @@ class EntrepriseController extends Controller
             'quartier' => 'required|string|max:255',
             'adresse' => 'required|string',
             'id_assurance' => 'required|exists:assurances,id_assurance',
+            'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096', // Validation du logo
         ], [
             'nom.required' => 'Le nom de l\'entreprise est obligatoire.',
             'id_assurance.exists' => 'L\'assurance associée n\'existe pas.',
         ]);
 
-        $entreprise = Entreprise::create($validated);
+        try {
+            $logoPath = null;
+            if ($request->hasFile('logo')) {
+                $logoName = time() . '.' . $request->logo->extension();
+                $logoPath = $request->logo->storeAs('logos/entreprises', $logoName, 'public');
+            }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Entreprise créée avec succès.',
-            'data' => $entreprise,
-        ], 201);
+            $validated['logo'] = $logoPath ? 'storage/' . $logoPath : null;
+
+            $entreprise = Entreprise::create($validated);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Entreprise créée avec succès.',
+                'data' => $entreprise,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors de la création de l\'entreprise.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
-   
+
     /**
-     * Met à jour une entreprise existante.
+     * Met à jour une entreprise existante et gère le logo.
      */
     public function update(Request $request, $id)
     {
@@ -103,19 +121,39 @@ class EntrepriseController extends Controller
             'quartier' => 'sometimes|required|string|max:255',
             'adresse' => 'sometimes|required|string',
             'id_assurance' => 'sometimes|required|exists:assurances,id_assurance',
+            'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096', // Validation pour le logo
         ]);
 
-        $entreprise->update($validated);
+        try {
+            if ($request->hasFile('logo')) {
+                // Supprimer l'ancien logo si un nouveau est téléversé
+                if ($entreprise->logo) {
+                    Storage::disk('public')->delete(str_replace('storage/', '', $entreprise->logo));
+                }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Entreprise mise à jour avec succès.',
-            'data' => $entreprise,
-        ], 200);
+                $logoName = time() . '.' . $request->logo->extension();
+                $logoPath = $request->logo->storeAs('logos/entreprises', $logoName, 'public');
+                $validated['logo'] = 'storage/' . $logoPath;
+            }
+
+            $entreprise->update($validated);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Entreprise mise à jour avec succès.',
+                'data' => $entreprise,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors de la mise à jour de l\'entreprise.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
-     * Supprime une entreprise.
+     * Supprime une entreprise et son logo associé.
      */
     public function destroy($id)
     {
@@ -132,10 +170,23 @@ class EntrepriseController extends Controller
             return response()->json(['message' => 'Entreprise non trouvée'], 404);
         }
 
-        $entreprise->delete();
+        try {
+            if ($entreprise->logo) {
+                // Supprimer le logo associé
+                Storage::disk('public')->delete(str_replace('storage/', '', $entreprise->logo));
+            }
 
-        return response()->json([
-             'message' => 'Entreprise supprimée avec succès.'
-        ], 200);
+            $entreprise->delete();
+
+            return response()->json([
+                'message' => 'Entreprise supprimée avec succès.'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors de la suppression de l\'entreprise.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

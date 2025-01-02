@@ -13,58 +13,54 @@ use Illuminate\Support\Str;
 
 class AssuranceGestController extends Controller
 {
-
     public function showGest($id_user)
-{
-    $user = Auth::user();
-    if (!in_array($user->role, ['superadmin', 'administrateur'])) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
-        ], 403);
-    }
-
-    try {
-        // Récupérer le gestionnaire avec les informations de l'assurance associée
-        $gestionnaire = User::where('id_user', $id_user)
-            ->where('role', 'assurance_gest')
-            ->with(['assurance' => function ($query) {
-                $query->select('id_assurance', 'code_ifc', 'libelle', 'id_gestionnaire');
-            }])
-            ->first();
-
-        if (!$gestionnaire) {
+    {
+        $user = Auth::user();
+        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gestionnaire introuvable ou non valide.',
-            ], 404);
+                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
+            ], 403);
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Gestionnaire trouvé avec succès.',
-            'data' => [
-                'id_user' => $gestionnaire->id_user,
-                'nom' => $gestionnaire->nom,
-                'email' => $gestionnaire->email,
-                'tel' => $gestionnaire->tel,
-                'role' => $gestionnaire->role,
-                'statut' => $gestionnaire->statut,
-                'assurance' => $gestionnaire->assurance,
-            ],
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Erreur lors de la récupération des informations.',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-}
+        try {
+            $gestionnaire = User::where('id_user', $id_user)
+                ->where('role', 'assurance_gest')
+                ->with(['assurance' => function ($query) {
+                    $query->select('id_assurance', 'code_ifc', 'libelle', 'id_gestionnaire');
+                }])
+                ->first();
 
-    /**
-     * Enregistrer un gestionnaire pour une assurance.
-     */
+            if (!$gestionnaire) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gestionnaire introuvable ou non valide.',
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Gestionnaire trouvé avec succès.',
+                'data' => [
+                    'id_user' => $gestionnaire->id_user,
+                    'nom' => $gestionnaire->nom,
+                    'email' => $gestionnaire->email,
+                    'tel' => $gestionnaire->tel,
+                    'role' => $gestionnaire->role,
+                    'statut' => $gestionnaire->statut,
+                    'photo_profil' => $gestionnaire->photo_profil,
+                    'assurance' => $gestionnaire->assurance,
+                ],
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors de la récupération des informations.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function register(Request $request)
     {
         $user = Auth::user();
@@ -80,6 +76,7 @@ class AssuranceGestController extends Controller
             'email' => 'required|email|unique:users,email',
             'tel' => 'required|string|max:20',
             'id_assurance' => 'required|exists:assurances,id_assurance',
+            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
         ]);
 
         DB::beginTransaction();
@@ -94,22 +91,28 @@ class AssuranceGestController extends Controller
                 ], 403);
             }
 
-            // Générer un mot de passe aléatoire
             $generatedPassword = Str::random(10);
 
-            $user = User::create([
+            $userData = [
                 'nom' => $validated['nom'],
                 'email' => $validated['email'],
                 'tel' => $validated['tel'],
                 'password' => Hash::make($generatedPassword),
                 'role' => 'assurance_gest',
-                'statut' => 'actif', // Compte activé par défaut
-            ]);
+                'statut' => 'actif',
+            ];
+
+            if ($request->hasFile('photo_profil')) {
+                $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
+                $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
+                $userData['photo_profil'] = 'storage/' . $filePath;
+            }
+
+            $user = User::create($userData);
 
             $assurance->id_gestionnaire = $user->id_user;
             $assurance->save();
 
-            // Envoyer les informations de connexion par email
             Mail::to($user->email)->send(new \App\Mail\AccountCreatedMailA($user, $generatedPassword));
 
             DB::commit();
@@ -123,6 +126,7 @@ class AssuranceGestController extends Controller
                     'email' => $user->email,
                     'role' => $user->role,
                     'statut' => $user->statut,
+                    'photo_profil' => $user->photo_profil,
                 ],
                 'assurance' => [
                     'id_assurance' => $assurance->id_assurance,
@@ -140,31 +144,40 @@ class AssuranceGestController extends Controller
         }
     }
 
-    /**
-     * Mettre à jour le profil d'un utilisateur.
-     */
     public function updateProfile(Request $request, $id_user)
     {
-        $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'assurance_gest'])) {
+        $currentUser = Auth::user();
+    
+        // Vérifier si l'utilisateur actuel a les droits nécessaires
+        if (!in_array($currentUser->role, ['superadmin', 'assurance_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
-
+    
+        // Récupérer l'utilisateur cible
+        $userToUpdate = User::findOrFail($id_user);
+    
+        // Empêcher la modification du profil d'un superadmin
+        if ($userToUpdate->role === 'superadmin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vous ne pouvez pas modifier le profil d\'un superadmin.'
+            ], 403);
+        }
+    
         $validated = $request->validate([
             'nom' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
             'tel' => 'nullable|string|max:20',
+            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'password' => 'nullable|min:8|confirmed',
         ]);
-
+    
         DB::beginTransaction();
-
+    
         try {
-            $userToUpdate = User::findOrFail($id_user);
-
-            // Mettre à jour les champs fournis
             if (isset($validated['nom'])) {
                 $userToUpdate->nom = $validated['nom'];
             }
@@ -174,11 +187,19 @@ class AssuranceGestController extends Controller
             if (isset($validated['tel'])) {
                 $userToUpdate->tel = $validated['tel'];
             }
-
+            if ($request->hasFile('photo_profil')) {
+                $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
+                $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
+                $userToUpdate->photo_profil = 'storage/' . $filePath;
+            }
+            if (isset($validated['password'])) {
+                $userToUpdate->password = Hash::make($validated['password']);
+            }
+    
             $userToUpdate->save();
-
+    
             DB::commit();
-
+    
             return response()->json([
                 'status' => 'success',
                 'message' => 'Profil mis à jour avec succès.',
@@ -189,6 +210,7 @@ class AssuranceGestController extends Controller
                     'tel' => $userToUpdate->tel,
                     'role' => $userToUpdate->role,
                     'statut' => $userToUpdate->statut,
+                    'photo_profil' => $userToUpdate->photo_profil,
                 ],
             ], 200);
         } catch (\Exception $e) {
@@ -200,4 +222,6 @@ class AssuranceGestController extends Controller
             ], 500);
         }
     }
+    
+
 }

@@ -7,18 +7,17 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-
 class User extends Authenticatable
 {
-    use HasApiTokens,HasFactory, Notifiable;   
-
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $primaryKey = 'id_user';
 
     protected $fillable = [
-        'email', 'password', 'nom', 'tel', 'quartier', 'ville', 'role', 'statut', 'id_assurance', 'id_entreprise', 'id_partenaire_shop'
+        'email', 'password', 'nom', 'tel', 'quartier', 
+        'ville', 'role', 'statut', 'id_assurance', 
+        'id_entreprise', 'id_partenaire_shop', 'photo_profil'
     ];
-    
 
     protected $hidden = [
         'password',
@@ -52,4 +51,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(Employe::class, 'id_user'); // Relation avec un employé
     }
+    
+    public function compte()
+    {
+        return $this->hasOne(Compte::class, 'id_user', 'id_user');
+    }
+    
 }

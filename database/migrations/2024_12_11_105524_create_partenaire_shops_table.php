@@ -15,12 +15,12 @@ class CreatePartenaireShopsTable extends Migration
             $table->string('adresse');
             $table->string('ville');
             $table->string('quartier');
+            $table->string('logo')->nullable(); // Nouveau champ pour le logo
             $table->timestamps();
-        
+
             // Clé étrangère vers la table users
             $table->foreign('id_gestionnaire')->references('id_user')->on('users')->onDelete('cascade');
         });
-        
     }
 
     public function down()
@@ -28,5 +28,6 @@ class CreatePartenaireShopsTable extends Migration
         Schema::dropIfExists('partenaire_shops');
     }
 }
+
 
  

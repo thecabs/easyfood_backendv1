@@ -15,6 +15,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\CategorieController;
 use App\Http\Controllers\ProduitController;
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\ProductFeaturesController;
 
 
 use App\Http\Controllers\SuperAdminController;
@@ -50,9 +51,18 @@ Route::prefix('superadmin')->group(function () {
 
 
 // Administrateur
-Route::prefix('admin')->group(function () {
-    Route::post('/register', [AdminController::class, 'register']);
+ 
+    Route::post('/admin/register', [AdminController::class, 'register']);
+
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('admin')->group(function () {
+         Route::put('/update/{id_user}', [AdminController::class, 'updateProfile']);
+        Route::delete('/delete/{id_user}', [AdminController::class, 'deleteUser']);
+    
+    });
 });
+
 
 
  
@@ -284,17 +294,30 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/stocks/add', [StockController::class, 'index']); // Liste des stocks
+    Route::get('/stocks/', [StockController::class, 'index']); // Liste des stocks
     Route::get('/stocks/{id}', [StockController::class, 'show']); // Afficher un stock
-    Route::post('/stocks/add', [StockController::class, 'store']); // Créer un stock
+    Route::post('/stocks/add', [StockController::class, 'store']); // Créer un stock avec l'idshop correspondant
     Route::put('/stocks/update/{id}', [StockController::class, 'update']); // Mettre à jour un stock
     Route::delete('/stocks/delete/{id}', [StockController::class, 'destroy']); // Supprimer un stock
 });
 
-
+// logs sur le stocks
 
  
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/stocks/{id}/logs', [StockController::class, 'logs']);
+});
 
+
+// les images sur les produits 
+
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/produits/{id_produit}/images', [ProductFeaturesController::class, 'store']);
+    Route::get('/produits/{id_produit}/images', [ProductFeaturesController::class, 'listImages']);
+    Route::delete('/images/{id_image}', [ProductFeaturesController::class, 'deleteImage']);
+});
 
 
 //AUTH
