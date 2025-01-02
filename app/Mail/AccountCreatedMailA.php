@@ -35,7 +35,7 @@ class AccountCreatedMailA extends Mailable
      */
     public function build()
     {
-        return $this->view('emails.account_createda')
+        return $this->view('emails.account_createdass')
             ->subject('Votre compte gestionnaire assurance a été créé')
             ->with([
                 'user' => $this->user,

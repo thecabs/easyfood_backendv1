@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,12 +11,6 @@
     <ul>
         <li>Email : {{ $user->email }}</li>
         <li>Mot de passe : {{ $password }}</li>
-    </ul>
-
-    <p>Voici les détails de votre compte IFC:</p>
-    <ul>
-        <li>Numéro de compte : {{ $compte->numero_compte }}</li>
-        <li>PIN : {{ $pin }}</li>
     </ul>
 
     <p>Veuillez vous connecter et changer votre mot de passe et PIN si nécessaire.</p>

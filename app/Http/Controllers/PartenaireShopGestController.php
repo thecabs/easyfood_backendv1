@@ -15,6 +15,66 @@ use Illuminate\Support\Facades\Mail;
 class PartenaireShopGestController extends Controller
 {
     /**
+ * Afficher les détails d'un gestionnaire de shop partenaire.
+ */
+public function showGest($id_user)
+{
+    $currentUser = Auth::user();
+
+    // Vérification des rôles
+    if (!in_array($currentUser->role, ['superadmin', 'administrateur'])) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Accès non autorisé.',
+        ], 403);
+    }
+
+    try {
+        // Récupérer le gestionnaire avec son shop et compte bancaire
+        $gestionnaire = User::where('id_user', $id_user)
+            ->where('role', 'partenaire_shop_gest')
+            ->with([
+                'partenaireShop' => function ($query) {
+                    $query->select('id_partenaire', 'nom', 'adresse', 'id_gestionnaire');
+                },
+                'compte'
+            ])
+            ->first();
+
+        if (!$gestionnaire) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gestionnaire introuvable ou non valide.',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Gestionnaire trouvé avec succès.',
+            'data' => [
+                'id_user' => $gestionnaire->id_user,
+                'nom' => $gestionnaire->nom,
+                'email' => $gestionnaire->email,
+                'tel' => $gestionnaire->tel,
+                'role' => $gestionnaire->role,
+                'statut' => $gestionnaire->statut,
+                'shop' => $gestionnaire->partenaireShop,
+                'compte' => $gestionnaire->compte ? [
+                    'numero_compte' => $gestionnaire->compte->numero_compte,
+                    'solde' => $gestionnaire->compte->solde,
+                ] : null,
+            ],
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Erreur lors de la récupération des informations.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+    /**
      * Enregistre un gestionnaire pour un shop partenaire.
      */
     public function register(Request $request)

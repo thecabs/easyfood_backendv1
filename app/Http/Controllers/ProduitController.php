@@ -14,21 +14,35 @@ class ProduitController extends Controller
     public function index()
     {
         $currentUser = Auth::user();
-
-        // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest','administrateur','caissiere'])) {
+    
+        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest', 'administrateur', 'caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-        $produits = Produit::with('categorie', 'partenaire')->get();
-
+    
+        $produits = Produit::with(['categorie', 'partenaire', 'stock'])->get();
+    
+        $produits = $produits->map(function ($produit) {
+            return [
+                'id' => $produit->id_produit,
+                'nom' => $produit->nom,
+                'categorie' => $produit->categorie->nom ?? null,
+                'prix_ifc' => $produit->prix_ifc,
+                'prix_shop' => $produit->prix_shop,
+                'statut' => $produit->statut,
+                'code_barre' => $produit->code_barre,
+                'quantite_disponible' => $produit->stock->quantite ?? 0, // Quantité disponible
+            ];
+        });
+    
         return response()->json([
             'status' => 'success',
             'data' => $produits,
         ], 200);
     }
+    
 
     /**
      * Création d'un produit.

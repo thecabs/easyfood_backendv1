@@ -5,24 +5,28 @@ namespace App\Http\Controllers;
 use App\Models\Assurance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
- class AssuranceController extends Controller
+
+class AssuranceController extends Controller
 {
     /**
      * Afficher toutes les assurances avec leurs entreprises associées.
      */
     public function index()
     {
-        // Vérifier si l'utilisateur est autorisé
         $user = Auth::user();
         if (!in_array($user->role, ['superadmin', 'administrateur'])) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
 
-        // Récupérer les assurances avec leurs entreprises associées
         $assurances = Assurance::with('entreprises')->get();
-        return response()->json($assurances, 200);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $assurances,
+        ], 200);
     }
 
     /**
@@ -33,6 +37,7 @@ use Illuminate\Support\Facades\Auth;
         $user = Auth::user();
         if (!in_array($user->role, ['superadmin', 'administrateur'])) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
@@ -40,10 +45,16 @@ use Illuminate\Support\Facades\Auth;
         $assurance = Assurance::with('entreprises')->find($id);
 
         if (!$assurance) {
-            return response()->json(['message' => 'Assurance non trouvée'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Assurance non trouvée',
+            ], 404);
         }
 
-        return response()->json($assurance, 200);
+        return response()->json([
+            'status' => 'success',
+            'data' => $assurance,
+        ], 200);
     }
 
     /**
@@ -54,6 +65,7 @@ use Illuminate\Support\Facades\Auth;
         $user = Auth::user();
         if (!in_array($user->role, ['superadmin', 'administrateur'])) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
@@ -63,10 +75,13 @@ use Illuminate\Support\Facades\Auth;
             'libelle' => 'nullable|string|unique:assurances,libelle|max:255',
         ]);
 
-        // Création de l'assurance
         $assurance = Assurance::create($validated);
 
-        return response()->json($assurance, 201);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Assurance créée avec succès.',
+            'data' => $assurance,
+        ], 201);
     }
 
     /**
@@ -77,6 +92,7 @@ use Illuminate\Support\Facades\Auth;
         $user = Auth::user();
         if (!in_array($user->role, ['superadmin', 'administrateur'])) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
@@ -84,7 +100,10 @@ use Illuminate\Support\Facades\Auth;
         $assurance = Assurance::find($id);
 
         if (!$assurance) {
-            return response()->json(['message' => 'Assurance non trouvée'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Assurance non trouvée',
+            ], 404);
         }
 
         $validated = $request->validate([
@@ -92,10 +111,13 @@ use Illuminate\Support\Facades\Auth;
             'libelle' => 'nullable|string|max:255',
         ]);
 
-        // Mise à jour de l'assurance
         $assurance->update($validated);
 
-        return response()->json($assurance, 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Assurance mise à jour avec succès.',
+            'data' => $assurance,
+        ], 200);
     }
 
     /**
@@ -106,6 +128,7 @@ use Illuminate\Support\Facades\Auth;
         $user = Auth::user();
         if (!in_array($user->role, ['superadmin', 'administrateur'])) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
@@ -113,15 +136,17 @@ use Illuminate\Support\Facades\Auth;
         $assurance = Assurance::find($id);
 
         if (!$assurance) {
-            return response()->json(['message' => 'Assurance non trouvée'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Assurance non trouvée',
+            ], 404);
         }
 
         $assurance->delete();
 
-        return response()->json(['message' => 'Assurance supprimée avec succès'], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Assurance supprimée avec succès.',
+        ], 200);
     }
-
-  
- 
-
 }

@@ -35,4 +35,8 @@ class Produit extends Model
     {
         return $this->hasMany(LigneFacture::class, 'id_produit');
     }
+    public function stock()
+    {
+        return $this->hasOne(Stock::class, 'id_produit');
+    }
 }

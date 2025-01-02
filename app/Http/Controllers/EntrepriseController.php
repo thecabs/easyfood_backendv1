@@ -108,7 +108,8 @@ class EntrepriseController extends Controller
         $entreprise->update($validated);
 
         return response()->json([
-             'message' => 'Entreprise mise à jour avec succès.',
+            'status' => 'success',
+            'message' => 'Entreprise mise à jour avec succès.',
             'data' => $entreprise,
         ], 200);
     }

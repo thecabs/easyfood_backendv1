@@ -14,6 +14,7 @@ use App\Http\Controllers\CompteController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\CategorieController;
 use App\Http\Controllers\ProduitController;
+use App\Http\Controllers\StockController;
 
 
 use App\Http\Controllers\SuperAdminController;
@@ -58,24 +59,6 @@ Route::prefix('admin')->group(function () {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // ASSURANCE 
 
 
@@ -95,6 +78,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Route pour enregistrer un gestionnaire assurance
     Route::post('/assurance-gest/register', [AssuranceGestController::class, 'register']);
     Route::put('/assurance-gestupdate/{id_user}', [AssuranceGestController::class, 'updateProfile']);
+    // afficher un gestionnaire
+
+ 
+     Route::get('/assurance-gest/show/{id_user}', [AssuranceGestController::class, 'showGest']);
 
     // Route pour confirmer l'OTP pour un gestionnaire assurance
     // Route::post('/assurance-gest/confirm-otp', [AssuranceGestController::class, 'confirmOtp']);
@@ -121,6 +108,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Route pour update un gestionnaire d'entreprise
     Route::put('/entreprise-gestupdate/{id_user}', [EntrepriseGestController::class, 'updateProfile']);
+
+
+    // afficher un gestionnaire
+
+    Route::get('/entreprise-gest/show/{id_user}', [EntrepriseGestController::class, 'showGest']);
+
 });
 
 
@@ -224,7 +217,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Mettre à jour un gestionnaire
         Route::put('/update/{id_user}', [PartenaireShopGestController::class, 'updateProfile']);
      
-       
+                // afficher  un gestionnaire
+
+        Route::get('/show/{id_user}', [PartenaireShopGestController::class, 'showGest']);
+
      });
     
     
@@ -284,6 +280,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 
 
+// le stock 
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/stocks/add', [StockController::class, 'index']); // Liste des stocks
+    Route::get('/stocks/{id}', [StockController::class, 'show']); // Afficher un stock
+    Route::post('/stocks/add', [StockController::class, 'store']); // Créer un stock
+    Route::put('/stocks/update/{id}', [StockController::class, 'update']); // Mettre à jour un stock
+    Route::delete('/stocks/delete/{id}', [StockController::class, 'destroy']); // Supprimer un stock
+});
 
 
 

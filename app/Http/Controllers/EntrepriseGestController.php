@@ -16,6 +16,63 @@ use Illuminate\Support\Str;
 class EntrepriseGestController extends Controller
 {
     /**
+ * Afficher les détails d'un gestionnaire d'entreprise.
+ */
+public function showGest($id_user)
+{
+    $currentUser = Auth::user();
+
+    // Vérification des rôles
+    if (!in_array($currentUser->role, ['superadmin', 'administrateur'])) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Accès non autorisé.',
+        ], 403);
+    }
+
+    try {
+        // Récupérer le gestionnaire avec son entreprise et compte bancaire
+        $gestionnaire = User::where('id_user', $id_user)
+            ->where('role', 'entreprise_gest')
+            ->with(['entreprise' => function ($query) {
+                $query->select('id_entreprise', 'nom', 'secteur_activite', 'id_gestionnaire');
+            }, 'compte'])
+            ->first();
+
+        if (!$gestionnaire) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gestionnaire introuvable ou non valide.',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Gestionnaire trouvé avec succès.',
+            'data' => [
+                'id_user' => $gestionnaire->id_user,
+                'nom' => $gestionnaire->nom,
+                'email' => $gestionnaire->email,
+                'tel' => $gestionnaire->tel,
+                'role' => $gestionnaire->role,
+                'statut' => $gestionnaire->statut,
+                'entreprise' => $gestionnaire->entreprise,
+                'compte' => $gestionnaire->compte ? [
+                    'numero_compte' => $gestionnaire->compte->numero_compte,
+                    'solde' => $gestionnaire->compte->solde,
+                ] : null,
+            ],
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Erreur lors de la récupération des informations.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+    /**
      * Enregistre un gestionnaire pour une entreprise.
      */
     public function register(Request $request)
