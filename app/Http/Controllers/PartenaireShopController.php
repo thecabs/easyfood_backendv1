@@ -61,6 +61,7 @@ class PartenaireShopController extends Controller
                     'id_user' => $shop->gestionnaire->id_user,
                     'nom' => $shop->gestionnaire->nom,
                     'email' => $shop->gestionnaire->email,
+                    'tel' => $shop->gestionnaire->tel,
                 ] : null,
             ];
         });

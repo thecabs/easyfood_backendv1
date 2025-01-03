@@ -64,7 +64,10 @@ class EntrepriseController extends Controller
             return response()->json(['message' => 'Entreprise non trouvée'], 404);
         }
 
-        return response()->json($entreprise, 200);
+        return response()->json([
+            'status' => 'success',
+            'data'=> $entreprise
+        ], 200);
     }
 
     /**
