@@ -20,9 +20,9 @@ class PartenaireShop extends Model
         'logo',  
     ];
 
-    public function user()
+    public function gestionnaire()
     {
-        return $this->belongsTo(User::class, 'id_user');
+        return $this->belongsTo(User::class, 'id_gestionnaire');
     }
 
     public function produits()

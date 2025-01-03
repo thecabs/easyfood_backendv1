@@ -32,9 +32,9 @@ class User extends Authenticatable
     // Relation avec l'assurance
     public function assurance()
     {
-        return $this->belongsTo(Assurance::class, 'id_assurance');
+        return $this->belongsTo(Assurance::class, 'id_assurance', 'id_assurance');
     }
-
+    
     // Relation avec l'entreprise (pour les employés)
     public function entreprise()
     {

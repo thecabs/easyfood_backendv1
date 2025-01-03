@@ -25,8 +25,11 @@ class Assurance extends Model
         return $this->hasMany(Entreprise::class, 'id_assurance');
     }
 
-    public function user()
+    public function gestionnaire()
     {
-        return $this->belongsTo(User::class, 'id_user');
+        return $this->belongsTo(User::class, 'id_gestionnaire');
     }
+  
+
+   
 }

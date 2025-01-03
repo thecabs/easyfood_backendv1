@@ -23,6 +23,8 @@ class CreateUsersTable extends Migration
             ])->default('employe');
             $table->unsignedBigInteger('id_entreprise')->nullable(); // Référence à l'entreprise
             $table->unsignedBigInteger('id_partenaire_shop')->nullable(); // Référence au partenaire shop
+            $table->unsignedBigInteger('id_assurance')->nullable(); // Ajout du champ id_assurance
+
             $table->enum('statut', ['en_attente', 'actif', 'inactif'])->default('inactif'); // Statut
             $table->string('photo_profil')->nullable(); // Chemin de la photo de profil
             $table->timestamps();

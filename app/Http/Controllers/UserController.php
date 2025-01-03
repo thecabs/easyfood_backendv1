@@ -128,6 +128,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'data' => $user,
             'message' => 'Utilisateur supprimé avec succès.',
         ], 200);
     } catch (\Exception $e) {

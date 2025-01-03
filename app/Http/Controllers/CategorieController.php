@@ -149,6 +149,7 @@ class CategorieController extends Controller
         if (!$categorie) {
             return response()->json([
                 'status' => 'error',
+
                 'message' => 'Catégorie introuvable.',
             ], 404);
         }
@@ -157,6 +158,8 @@ class CategorieController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'data' => $categorie,
+
             'message' => 'Catégorie supprimée avec succès.',
         ], 200);
     }

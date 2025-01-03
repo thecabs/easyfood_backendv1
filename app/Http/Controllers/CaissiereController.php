@@ -250,6 +250,7 @@ class CaissiereController extends Controller
 
             return response()->json([
                 'status' => 'success',
+                'data' => $caissiere,
                 'message' => 'Caissière supprimée avec succès.',
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

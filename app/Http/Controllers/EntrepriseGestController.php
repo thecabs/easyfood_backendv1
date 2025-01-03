@@ -51,7 +51,7 @@ class EntrepriseGestController extends Controller
                     'nom' => $gestionnaire->nom,
                     'email' => $gestionnaire->email,
                     'tel' => $gestionnaire->tel,
-                    'photo_profil' => $gestionnaire->photo_profil, // Ajout du champ photo_profil
+                    'photo_profil' => $gestionnaire->photo_profil,  
                     'role' => $gestionnaire->role,
                     'statut' => $gestionnaire->statut,
                     'entreprise' => $gestionnaire->entreprise,
@@ -74,97 +74,110 @@ class EntrepriseGestController extends Controller
      * Enregistre un gestionnaire pour une entreprise.
      */
     public function register(Request $request)
-    {
-        $currentUser = Auth::user();
-        if (!in_array($currentUser->role, ['administrateur', 'superadmin'])) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
+{
+    $currentUser = Auth::user();
 
-        $validated = $request->validate([
-            'nom' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'tel' => 'required|string|max:20',
-            'id_entreprise' => 'required|exists:entreprises,id_entreprise',
-            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
-        ]);
+    if (!in_array($currentUser->role, ['administrateur', 'superadmin'])) {
+        return response()->json(['message' => 'Accès non autorisé.'], 403);
+    }
 
-        DB::beginTransaction();
+    $validated = $request->validate([
+        'nom' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'tel' => 'required|string|max:20',
+        'id_entreprise' => 'required|exists:entreprises,id_entreprise',
+        'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
+    ]);
 
-        try {
-            $entreprise = Entreprise::findOrFail($validated['id_entreprise']);
-            if ($entreprise->id_gestionnaire) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Cette entreprise a déjà un gestionnaire.',
-                ], 403);
-            }
+    DB::beginTransaction();
 
-            $generatedPassword = Str::random(10);
+    try {
+        // Récupérer l'entreprise
+        $entreprise = Entreprise::findOrFail($validated['id_entreprise']);
 
-            $userData = [
-                'nom' => $validated['nom'],
-                'email' => $validated['email'],
-                'tel' => $validated['tel'],
-                'password' => Hash::make($generatedPassword),
-                'role' => 'entreprise_gest',
-                'statut' => 'actif',
-            ];
-
-            if ($request->hasFile('photo_profil')) {
-                $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
-                $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
-                $userData['photo_profil'] = 'storage/' . $filePath;
-            }
-
-            $user = User::create($userData);
-
-            $entreprise->id_gestionnaire = $user->id_user;
-            $entreprise->save();
-
-            $defaultPin = Compte::generateDefaultPin();
-            $compte = Compte::create([
-                'numero_compte' => Compte::generateNumeroCompte($user),
-                'solde' => 0,
-                'date_creation' => now(),
-                'id_user' => $user->id_user,
-                'pin' => Hash::make($defaultPin),
-            ]);
-
-            Mail::to($user->email)->send(new \App\Mail\AccountCreatedMail($user, $generatedPassword, $compte, $defaultPin));
-
-            DB::commit();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Gestionnaire créé avec succès. Les informations de connexion et du compte bancaire ont été envoyées.',
-                'user' => [
-                    'id_user' => $user->id_user,
-                    'nom' => $user->nom,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'statut' => $user->statut,
-                    'photo_profil' => $user->photo_profil,
-                ],
-                'compte' => [
-                    'numero_compte' => $compte->numero_compte,
-                    'solde' => $compte->solde,
-                ],
-                'entreprise' => [
-                    'id_entreprise' => $entreprise->id_entreprise,
-                    'nom' => $entreprise->nom,
-                    'secteur_activite' => $entreprise->secteur_activite,
-                ],
-            ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
+        // Vérifier si un gestionnaire est déjà associé
+        if ($entreprise->id_gestionnaire) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Une erreur est survenue lors de la création.',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => 'Cette entreprise a déjà un gestionnaire.',
+            ], 403);
         }
+
+        // Générer un mot de passe aléatoire
+        $generatedPassword = Str::random(10);
+
+        // Préparer les données de l'utilisateur
+        $userData = [
+            'nom' => $validated['nom'],
+            'email' => $validated['email'],
+            'tel' => $validated['tel'],
+            'password' => Hash::make($generatedPassword),
+            'role' => 'entreprise_gest',
+            'statut' => 'actif',
+            'id_entreprise' => $validated['id_entreprise'], // Lier l'entreprise à l'utilisateur
+        ];
+
+        // Gérer l'upload de la photo de profil
+        if ($request->hasFile('photo_profil')) {
+            $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
+            $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
+            $userData['photo_profil'] = 'storage/' . $filePath;
+        }
+
+        // Créer l'utilisateur
+        $user = User::create($userData);
+
+        // Associer l'utilisateur comme gestionnaire de l'entreprise
+        $entreprise->id_gestionnaire = $user->id_user;
+        $entreprise->save();
+
+        // Créer un compte bancaire pour l'utilisateur
+        $defaultPin = Compte::generateDefaultPin();
+        $compte = Compte::create([
+            'numero_compte' => Compte::generateNumeroCompte($user),
+            'solde' => 0,
+            'date_creation' => now(),
+            'id_user' => $user->id_user,
+            'pin' => Hash::make($defaultPin),
+        ]);
+
+        // Envoyer un email au gestionnaire avec ses informations de connexion
+        Mail::to($user->email)->send(new \App\Mail\AccountCreatedMail($user, $generatedPassword, $compte, $defaultPin));
+
+        DB::commit();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Gestionnaire créé avec succès. Les informations de connexion et du compte bancaire ont été envoyées.',
+            'user' => [
+                'id_user' => $user->id_user,
+                'nom' => $user->nom,
+                'email' => $user->email,
+                'role' => $user->role,
+                'statut' => $user->statut,
+                'photo_profil' => $user->photo_profil,
+            ],
+            'compte' => [
+                'numero_compte' => $compte->numero_compte,
+                'solde' => $compte->solde,
+            ],
+            'entreprise' => [
+                'id_entreprise' => $entreprise->id_entreprise,
+                'nom' => $entreprise->nom,
+                'secteur_activite' => $entreprise->secteur_activite,
+            ],
+        ], 201);
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Une erreur est survenue lors de la création.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
+
 
     /**
      * Met à jour les informations d'un gestionnaire.

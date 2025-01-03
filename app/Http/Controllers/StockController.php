@@ -205,6 +205,8 @@ $this->logStockAction($stock->id_stock, 'delete');
 
         return response()->json([
             'status' => 'success',
+            'data' => $stock,
+
             'message' => 'Stock supprimé avec succès.',
         ], 200);
     }

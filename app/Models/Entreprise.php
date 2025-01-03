@@ -26,7 +26,7 @@ class Entreprise extends Model
 
     public function gestionnaire()
     {
-        return $this->belongsTo(User::class, 'id_user');
+        return $this->belongsTo(User::class, 'id_gestionnaire');
     }
 
     public function assurance()

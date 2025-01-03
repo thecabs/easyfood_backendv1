@@ -79,10 +79,11 @@ class PartenaireShopGestController extends Controller
     public function register(Request $request)
     {
         $currentUser = Auth::user();
+    
         if (!in_array($currentUser->role, ['administrateur', 'superadmin'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
-
+    
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -93,20 +94,25 @@ class PartenaireShopGestController extends Controller
             'email.unique' => 'Cet email est déjà utilisé.',
             'id_partenaire.exists' => 'Shop partenaire introuvable.',
         ]);
-
+    
         DB::beginTransaction();
-
+    
         try {
+            // Récupérer le partenaire shop
             $shop = PartenaireShop::findOrFail($validated['id_partenaire']);
+    
+            // Vérifier si un gestionnaire est déjà associé
             if ($shop->id_gestionnaire) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Ce shop a déjà un gestionnaire.',
                 ], 403);
             }
-
+    
+            // Générer un mot de passe aléatoire
             $generatedPassword = Str::random(10);
-
+    
+            // Préparer les données de l'utilisateur
             $userData = [
                 'nom' => $validated['nom'],
                 'email' => $validated['email'],
@@ -114,19 +120,24 @@ class PartenaireShopGestController extends Controller
                 'password' => Hash::make($generatedPassword),
                 'role' => 'partenaire_shop_gest',
                 'statut' => 'actif',
+                'id_partenaire_shop' => $validated['id_partenaire'], // Lier le partenaire shop à l'utilisateur
             ];
-
+    
+            // Gérer l'upload de la photo de profil
             if ($request->hasFile('photo_profil')) {
                 $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
                 $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
                 $userData['photo_profil'] = 'storage/' . $filePath;
             }
-
+    
+            // Créer l'utilisateur
             $user = User::create($userData);
-
+    
+            // Associer l'utilisateur comme gestionnaire du shop
             $shop->id_gestionnaire = $user->id_user;
             $shop->save();
-
+    
+            // Créer un compte bancaire pour l'utilisateur
             $defaultPin = Compte::generateDefaultPin();
             $compte = Compte::create([
                 'numero_compte' => Compte::generateNumeroCompte($user),
@@ -135,11 +146,12 @@ class PartenaireShopGestController extends Controller
                 'id_user' => $user->id_user,
                 'pin' => Hash::make($defaultPin),
             ]);
-
+    
+            // Envoyer un email au gestionnaire avec ses informations de connexion
             Mail::to($user->email)->send(new \App\Mail\AccountCreatedMail($user, $generatedPassword, $compte, $defaultPin));
-
+    
             DB::commit();
-
+    
             return response()->json([
                 'status' => 'success',
                 'message' => 'Gestionnaire créé avec succès. Les informations de connexion et du compte bancaire ont été envoyées.',
@@ -149,7 +161,7 @@ class PartenaireShopGestController extends Controller
                     'email' => $user->email,
                     'role' => $user->role,
                     'statut' => $user->statut,
-                    'photo_profil' => $user->photo_profil, // Ajout de photo_profil
+                    'photo_profil' => $user->photo_profil,
                 ],
                 'compte' => [
                     'numero_compte' => $compte->numero_compte,
@@ -163,7 +175,7 @@ class PartenaireShopGestController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-
+    
             return response()->json([
                 'status' => 'error',
                 'message' => 'Une erreur est survenue lors de la création.',
@@ -171,7 +183,7 @@ class PartenaireShopGestController extends Controller
             ], 500);
         }
     }
-
+    
     /**
      * Met à jour les informations d'un gestionnaire.
      */

@@ -11,29 +11,31 @@ class PartenaireShopController extends Controller
     /**
      * Liste des partenaires shops avec filtres et tri.
      */
+    
+
     public function index(Request $request)
     {
         $user = Auth::user();
-
+    
         if (!in_array($user->role, ['superadmin', 'administrateur'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
-
+    
         $query = PartenaireShop::query();
-
+    
         // Filtres
         if ($request->has('nom')) {
             $query->where('nom', 'like', '%' . $request->input('nom') . '%');
         }
-
+    
         if ($request->has('ville')) {
             $query->where('ville', $request->input('ville'));
         }
-
+    
         if ($request->has('quartier')) {
             $query->where('quartier', 'like', '%' . $request->input('quartier') . '%');
         }
-
+    
         // Tri
         if ($request->has('sort_by') && $request->has('order')) {
             $sortBy = $request->input('sort_by');
@@ -42,15 +44,39 @@ class PartenaireShopController extends Controller
         } else {
             $query->orderBy('created_at', 'desc');
         }
-
+    
         // Pagination
-        $shops = $query->with('user')->paginate($request->input('per_page', 10));
-
+        $shops = $query->with('gestionnaire')->paginate($request->input('per_page', 10));
+    
+        // Formatage des données pour inclure le gestionnaire
+        $formattedShops = $shops->map(function ($shop) {
+            return [
+                'id' => $shop->id_partenaire,
+                'nom' => $shop->nom,
+                'adresse' => $shop->adresse,
+                'ville' => $shop->ville,
+                'quartier' => $shop->quartier,
+                'logo' => $shop->logo,
+                'gestionnaire' => $shop->gestionnaire ? [
+                    'id_user' => $shop->gestionnaire->id_user,
+                    'nom' => $shop->gestionnaire->nom,
+                    'email' => $shop->gestionnaire->email,
+                ] : null,
+            ];
+        });
+    
         return response()->json([
             'status' => 'success',
-            'data' => $shops,
+            'data' => $formattedShops,
+            'pagination' => [
+                'total' => $shops->total(),
+                'per_page' => $shops->perPage(),
+                'current_page' => $shops->currentPage(),
+                'last_page' => $shops->lastPage(),
+            ],
         ], 200);
     }
+    
 
     /**
      * Afficher un partenaire shop spécifique avec ses relations.
@@ -200,6 +226,7 @@ class PartenaireShopController extends Controller
 
             return response()->json([
                 'status' => 'success',
+                'data' => $shop,
                 'message' => 'Partenaire supprimé avec succès.',
             ], 200);
         } catch (\Exception $e) {

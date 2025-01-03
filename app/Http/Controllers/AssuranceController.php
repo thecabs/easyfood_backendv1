@@ -12,24 +12,42 @@ class AssuranceController extends Controller
     /**
      * Afficher toutes les assurances avec leurs entreprises associées.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
+    
+        if (!in_array($user->role, ['superadmin', 'administrateur', 'assurance_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
-
-        $assurances = Assurance::with('entreprises')->get();
-
+    
+        // Récupération des assurances avec leurs entreprises et gestionnaires
+        $assurances = Assurance::with([
+            'entreprises',
+            'gestionnaire:id_user,nom,photo_profil,tel'
+        ])->get();
+    
+        // Pagination manuelle
+        $perPage = $request->input('per_page', 10);
+        $currentPage = $request->input('page', 1);
+        $paginated = $assurances->slice(($currentPage - 1) * $perPage, $perPage)->values();
+    
+        // Construire la réponse paginée
         return response()->json([
             'status' => 'success',
-            'data' => $assurances,
+            'data' => $paginated,
+            'pagination' => [
+                'total' => $assurances->count(),
+                'per_page' => $perPage,
+                'current_page' => $currentPage,
+                'last_page' => ceil($assurances->count() / $perPage),
+            ],
         ], 200);
     }
-
+    
+    
     /**
      * Afficher une assurance spécifique avec ses entreprises associées.
      */
@@ -190,6 +208,7 @@ class AssuranceController extends Controller
 
             return response()->json([
                 'status' => 'success',
+                'data' => $assurance,
                 'message' => 'Assurance supprimée avec succès.',
             ], 200);
         } catch (\Exception $e) {

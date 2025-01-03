@@ -12,18 +12,39 @@ class EntrepriseController extends Controller
     /**
      * Liste toutes les entreprises avec leurs assurances associées.
      */
-    public function index()
-    {
-        $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
-            return response()->json([
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
-            ], 403);
-        }
+    public function index(Request $request)
+{
+    $user = Auth::user();
 
-        $entreprises = Entreprise::with('assurance')->paginate(10); // Utilisation de la pagination
-        return response()->json($entreprises, 200);
+    if (!in_array($user->role, ['superadmin', 'administrateur', 'assurance_gest'])) {
+        return response()->json([
+            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
+        ], 403);
     }
+
+    // Récupérer toutes les entreprises avec leurs assurances et gestionnaires
+    $entreprises = Entreprise::with([
+        'assurance:id_assurance,libelle,logo',
+        'gestionnaire:id_user,nom,photo_profil,tel'
+    ])->get();
+
+    // Pagination manuelle
+    $perPage = $request->input('per_page', 10);
+    $currentPage = $request->input('page', 1);
+    $paginated = $entreprises->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+    // Construire la réponse paginée
+    return response()->json([
+        'status' => 'success',
+        'data' => $paginated,
+        'pagination' => [
+            'total' => $entreprises->count(),
+            'per_page' => $perPage,
+            'current_page' => $currentPage,
+            'last_page' => ceil($entreprises->count() / $perPage),
+        ],
+    ], 200);
+}
 
     /**
      * Affiche une entreprise spécifique avec son assurance associée.
@@ -179,6 +200,8 @@ class EntrepriseController extends Controller
             $entreprise->delete();
 
             return response()->json([
+                'status' => 'success',
+                'data' => $entreprise,
                 'message' => 'Entreprise supprimée avec succès.'
             ], 200);
         } catch (\Exception $e) {

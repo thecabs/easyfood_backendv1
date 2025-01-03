@@ -11,17 +11,17 @@ class ProduitController extends Controller
       /**
      * Liste des produits.
      */
-    public function index()
+    public function index(Request $request)
     {
         $currentUser = Auth::user();
-
+    
         if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest', 'administrateur', 'caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-
+    
         if (in_array($currentUser->role, ['superadmin', 'administrateur'])) {
             // Superadmin et administrateur voient tous les produits
             $produits = Produit::with(['categorie', 'partenaire', 'stock', 'images'])->get();
@@ -31,8 +31,9 @@ class ProduitController extends Controller
                 ->where('id_partenaire', $currentUser->id_user)
                 ->get();
         }
-
-        $produits = $produits->map(function ($produit) {
+    
+        // Formatage des produits
+        $formattedProduits = $produits->map(function ($produit) {
             return [
                 'id' => $produit->id_produit,
                 'nom' => $produit->nom,
@@ -48,12 +49,25 @@ class ProduitController extends Controller
                 }),
             ];
         });
-
+    
+        // Pagination manuelle
+        $perPage = $request->input('per_page', 10);
+        $currentPage = $request->input('page', 1);
+        $paginated = $formattedProduits->slice(($currentPage - 1) * $perPage, $perPage)->values();
+    
+        // Construire la réponse paginée
         return response()->json([
             'status' => 'success',
-            'data' => $produits,
+            'data' => $paginated,
+            'pagination' => [
+                'total' => $formattedProduits->count(),
+                'per_page' => $perPage,
+                'current_page' => $currentPage,
+                'last_page' => ceil($formattedProduits->count() / $perPage),
+            ],
         ], 200);
     }
+    
 
     /**
      * Affiche un produit spécifique.
@@ -212,6 +226,7 @@ class ProduitController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'data' => $produit,
             'message' => 'Produit supprimé avec succès.',
         ], 200);
     }
