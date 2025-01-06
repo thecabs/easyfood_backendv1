@@ -126,7 +126,7 @@ class EntrepriseController extends Controller
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
