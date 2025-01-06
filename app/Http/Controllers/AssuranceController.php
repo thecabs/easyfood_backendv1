@@ -54,7 +54,7 @@ class AssuranceController extends Controller
     public function show($id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
@@ -126,7 +126,7 @@ class AssuranceController extends Controller
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
