@@ -97,7 +97,7 @@ class UserController extends Controller
     $currentUser = Auth::user();
 
     // Vérifier si l'utilisateur connecté est autorisé à supprimer d'autres utilisateurs
-    if (!in_array($currentUser->role, ['superadmin', 'administrateur'])) {
+    if (!in_array($currentUser->role, ['superadmin', 'administrateur','assurance_gest'])) {
         return response()->json([
             'status' => 'error',
             'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
