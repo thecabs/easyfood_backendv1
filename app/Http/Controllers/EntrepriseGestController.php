@@ -21,7 +21,7 @@ class EntrepriseGestController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'administrateur','assurance_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'administrateur','assurance_gest','entreprise_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Accès non autorisé.',
@@ -32,7 +32,7 @@ class EntrepriseGestController extends Controller
             $gestionnaire = User::where('id_user', $id_user)
                 ->where('role', 'entreprise_gest')
                 ->with(['entreprise' => function ($query) {
-                    $query->select('id_entreprise', 'nom', 'secteur_activite', 'id_gestionnaire');
+                    $query->select('id_entreprise', 'nom', 'secteur_activite', 'id_gestionnaire','id_assurance');
                 }, 'compte'])
                 ->first();
 
