@@ -68,7 +68,7 @@ class EmployeController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Compte employé créé avec succès. Un OTP a été envoyé.',
-                'user' => $user,
+                'data' => $user,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -183,8 +183,7 @@ class EmployeController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Le compte employé a été activé avec succès et un compte bancaire a été créé.',
-                'user' => $user,
-                'compte' => $compte,
+                'data' => ['user' => $user, 'compte' => $compte]
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -203,24 +202,24 @@ class EmployeController extends Controller
     public function index(Request $request)
     {
         $currentUser = Auth::user();
-    
+
         if (!in_array($currentUser->role, ['superadmin', 'administrateur', 'entreprise_gest', 'assurance_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
             ], 403);
         }
-    
+
         // Récupérer les employés avec leurs entreprises
         $employes = User::where('role', 'employe')
             ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')
             ->get();
-    
+
         // Pagination manuelle
         $perPage = $request->input('per_page', 10);
         $currentPage = $request->input('page', 1);
         $paginated = $employes->slice(($currentPage - 1) * $perPage, $perPage)->values();
-    
+
         // Construire la réponse paginée
         return response()->json([
             'status' => 'success',
@@ -234,7 +233,7 @@ class EmployeController extends Controller
             ],
         ], 200);
     }
-    
+
 
     /**
      * Afficher un employé spécifique.
