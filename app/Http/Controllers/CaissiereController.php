@@ -24,7 +24,7 @@ class CaissiereController extends Controller
      */
     public function index()
     {
-        $caissieres = Caissiere::with(['user', 'partenaireShop'])->paginate(10);
+        $caissieres = Caissiere::with(['user', 'partenaire_shop_gest'])->paginate(10);
 
         return response()->json([
             'status' => 'success',

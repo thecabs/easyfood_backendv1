@@ -35,7 +35,7 @@ class ProduitController extends Controller
         // Formatage des produits
         $formattedProduits = $produits->map(function ($produit) {
             return [
-                'id' => $produit->id_produit,
+                'id_produit' => $produit->id_produit,
                 'nom' => $produit->nom,
                 'categorie' => $produit->categorie->nom ?? null,
                 'prix_ifc' => $produit->prix_ifc,
@@ -92,18 +92,12 @@ class ProduitController extends Controller
             ], 404);
         }
 
-        if (!in_array($currentUser->role, ['superadmin', 'administrateur']) &&
-            $produit->id_partenaire !== $currentUser->id_user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à accéder à ce produit.',
-            ], 403);
-        }
+       
 
         return response()->json([
             'status' => 'success',
             'data' => [
-                'id' => $produit->id_produit,
+                'id_produit' => $produit->id_produit,
                 'nom' => $produit->nom,
                 'categorie' => $produit->categorie->nom ?? null,
                 'prix_ifc' => $produit->prix_ifc,
