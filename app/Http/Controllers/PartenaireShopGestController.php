@@ -21,7 +21,7 @@ class PartenaireShopGestController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'administrateur','partenaire_shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Accès non autorisé.',
