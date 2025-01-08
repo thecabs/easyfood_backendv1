@@ -119,7 +119,7 @@ class ProduitController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin','administrateur', 'partenaire_shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -193,7 +193,7 @@ class ProduitController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest','administrateur'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
