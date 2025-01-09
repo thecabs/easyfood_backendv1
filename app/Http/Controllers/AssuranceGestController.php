@@ -28,7 +28,7 @@ class AssuranceGestController extends Controller
         $gestionnaire = User::where('id_user', $id_user)
             ->where('role', 'assurance_gest')
             ->with(['assurance' => function ($query) {
-                $query->select('id_assurance', 'code_ifc', 'libelle', 'id_gestionnaire');
+                $query->select('id_assurance', 'code_ifc', 'libelle', 'id_gestionnaire','logo');
             }])
             ->first();
 
@@ -54,6 +54,7 @@ class AssuranceGestController extends Controller
                     'id_assurance' => $gestionnaire->assurance->id_assurance ?? null,
                     'libelle' => $gestionnaire->assurance->libelle ?? null,
                     'code_ifc' => $gestionnaire->assurance->code_ifc ?? null,
+                    'logo' => $gestionnaire->assurance->logo ?? null,
                 ],
             ],
         ], 200);
