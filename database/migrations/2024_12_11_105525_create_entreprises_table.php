@@ -16,7 +16,8 @@ class CreateEntreprisesTable extends Migration
             $table->string('quartier'); // Quartier
             $table->text('adresse'); // Adresse complète
             $table->string('logo')->nullable(); // Nouveau champ pour le logo
-            $table->unsignedBigInteger('id_assurance'); // Relation avec la table assurances
+            $table->unsignedBigInteger('id_assurance')->nullable(); // Relation avec la table assurances
+            $table->unsignedBigInteger('id_compte')->nullable(); // Relation avec la table assurances
             $table->unsignedBigInteger('id_gestionnaire')->nullable(); // Relation avec la table users
             $table->timestamps();
 
@@ -28,6 +29,11 @@ class CreateEntreprisesTable extends Migration
             $table->foreign('id_gestionnaire')
                 ->references('id_user')
                 ->on('users')
+                ->onDelete('set null'); // Met à NULL si l'utilisateur est supprimé
+            
+            $table->foreign('id_compte')
+                ->references('id')
+                ->on('comptes')
                 ->onDelete('set null'); // Met à NULL si l'utilisateur est supprimé
         });
     }

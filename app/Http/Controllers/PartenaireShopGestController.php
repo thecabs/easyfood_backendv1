@@ -21,7 +21,7 @@ class PartenaireShopGestController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'administrateur','partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'admin','shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Accès non autorisé.',
@@ -30,10 +30,10 @@ class PartenaireShopGestController extends Controller
 
         try {
             $gestionnaire = User::where('id_user', $id_user)
-                ->where('role', 'partenaire_shop_gest')
+                ->where('role', 'shop_gest')
                 ->with([
                     'partenaireShop' => function ($query) {
-                        $query->select('id_partenaire', 'nom', 'adresse', 'id_gestionnaire');
+                        $query->select('id_shop', 'nom', 'adresse', 'id_gestionnaire');
                     },
                     'compte'
                 ])
@@ -80,7 +80,7 @@ class PartenaireShopGestController extends Controller
     {
         $currentUser = Auth::user();
     
-        if (!in_array($currentUser->role, ['administrateur', 'superadmin'])) {
+        if (!in_array($currentUser->role, ['admin', 'superadmin'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
     
@@ -88,18 +88,18 @@ class PartenaireShopGestController extends Controller
             'nom' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'tel' => 'required|string|max:20',
-            'id_partenaire' => 'required|exists:partenaire_shops,id_partenaire',
+            'id_shop' => 'required|exists:partenaire_shops,id_shop',
             'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
         ], [
             'email.unique' => 'Cet email est déjà utilisé.',
-            'id_partenaire.exists' => 'Shop partenaire introuvable.',
+            'id_shop.exists' => 'Shop partenaire introuvable.',
         ]);
     
         DB::beginTransaction();
     
         try {
             // Récupérer le partenaire shop
-            $shop = PartenaireShop::findOrFail($validated['id_partenaire']);
+            $shop = PartenaireShop::findOrFail($validated['id_shop']);
     
             // Vérifier si un gestionnaire est déjà associé
             if ($shop->id_gestionnaire) {
@@ -118,9 +118,9 @@ class PartenaireShopGestController extends Controller
                 'email' => $validated['email'],
                 'tel' => $validated['tel'],
                 'password' => Hash::make($generatedPassword),
-                'role' => 'partenaire_shop_gest',
+                'role' => 'shop_gest',
                 'statut' => 'actif',
-                'id_partenaire_shop' => $validated['id_partenaire'], // Lier le partenaire shop à l'utilisateur
+                'id_shop' => $validated['id_shop'], // Lier le partenaire shop à l'utilisateur
             ];
     
             // Gérer l'upload de la photo de profil
@@ -168,7 +168,7 @@ class PartenaireShopGestController extends Controller
                     'solde' => $compte->solde,
                 ],
                 'shop' => [
-                    'id_partenaire' => $shop->id_partenaire,
+                    'id_shop' => $shop->id_shop,
                     'nom' => $shop->nom,
                     'adresse' => $shop->adresse,
                 ],
@@ -192,7 +192,7 @@ class PartenaireShopGestController extends Controller
         $currentUser = Auth::user();
     
         // Vérification des autorisations de l'utilisateur actuel
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
     
@@ -217,8 +217,8 @@ class PartenaireShopGestController extends Controller
                 ], 403);
             }
     
-            // Vérification spécifique pour le rôle partenaire_shop_gest
-            if ($userToUpdate->role !== 'partenaire_shop_gest' && $userToUpdate->role !== 'superadmin') {
+            // Vérification spécifique pour le rôle shop_gest
+            if ($userToUpdate->role !== 'shop_gest' && $userToUpdate->role !== 'superadmin') {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'L\'utilisateur spécifié n\'est pas un gestionnaire de shop partenaire.',

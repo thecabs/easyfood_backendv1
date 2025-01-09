@@ -203,7 +203,7 @@ class EmployeController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'administrateur', 'entreprise_gest', 'assurance_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'admin', 'entreprise_gest', 'assurance_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
@@ -242,7 +242,7 @@ class EmployeController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'administrateur', 'entreprise_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'admin', 'entreprise_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',

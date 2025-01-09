@@ -16,7 +16,7 @@ class User extends Authenticatable
     protected $fillable = [
         'email', 'password', 'nom', 'tel', 'quartier', 
         'ville', 'role', 'statut', 'id_assurance', 
-        'id_entreprise', 'id_partenaire_shop', 'photo_profil'
+        'id_entreprise', 'id_shop', 'photo_profil'
     ];
 
     protected $hidden = [
@@ -44,7 +44,7 @@ class User extends Authenticatable
     // Relation avec le partenaire shop (pour les caissières)
     public function partenaireShop()
     {
-        return $this->belongsTo(PartenaireShop::class, 'id_partenaire_shop');
+        return $this->belongsTo(PartenaireShop::class, 'id_shop');
     }
 
     public function employe()

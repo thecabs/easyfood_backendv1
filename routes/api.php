@@ -50,7 +50,7 @@ Route::prefix('superadmin')->group(function () {
 });
 
 
-// Administrateur
+// admin
  
     Route::post('/admin/register', [AdminController::class, 'register']);
 
@@ -199,13 +199,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/register', [PartenaireShopController::class, 'store']);
      
         // Mettre à jour un partenaire shop
-        Route::put('update/{id_partenaire}', [PartenaireShopController::class, 'update']);
+        Route::put('update/{id_shop}', [PartenaireShopController::class, 'update']);
      
         // Supprimer un partenaire shop
-        Route::delete('delete/{id_partenaire}', [PartenaireShopController::class, 'destroy']);
+        Route::delete('delete/{id_shop}', [PartenaireShopController::class, 'destroy']);
      
         // Voir les détails d'un partenaire shop
-        Route::get('show/{id_partenaire}', [PartenaireShopController::class, 'show']);
+        Route::get('show/{id_shop}', [PartenaireShopController::class, 'show']);
      
         // Lister tous les partenaires shops
         Route::get('/', [PartenaireShopController::class, 'index']);

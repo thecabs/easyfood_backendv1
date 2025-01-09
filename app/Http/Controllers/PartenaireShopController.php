@@ -17,7 +17,7 @@ class PartenaireShopController extends Controller
     {
         $user = Auth::user();
     
-        if (!in_array($user->role, ['superadmin', 'administrateur','partenaire_shop_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin','shop_gest'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
     
@@ -51,7 +51,7 @@ class PartenaireShopController extends Controller
         // Formatage des données pour inclure le gestionnaire
         $formattedShops = $shops->map(function ($shop) {
             return [
-                'id' => $shop->id_partenaire,
+                'id' => $shop->id_shop,
                 'nom' => $shop->nom,
                 'adresse' => $shop->adresse,
                 'ville' => $shop->ville,
@@ -86,11 +86,11 @@ class PartenaireShopController extends Controller
     {
         $user = Auth::user();
 
-        if (!in_array($user->role, ['superadmin', 'administrateur', 'partenaire_shop_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin', 'shop_gest'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
 
-        $shop = PartenaireShop::with('user', 'caissieres')->find($id);
+        $shop = PartenaireShop::with('gestionnaire', 'caissieres')->find($id);
 
         if (!$shop) {
             return response()->json(['message' => 'Partenaire introuvable.'], 404);
@@ -109,7 +109,7 @@ class PartenaireShopController extends Controller
     {
         $user = Auth::user();
 
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($user->role, ['superadmin', 'admin'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
 
@@ -154,7 +154,7 @@ class PartenaireShopController extends Controller
     {
         $user = Auth::user();
 
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($user->role, ['superadmin', 'admin'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
 
@@ -207,7 +207,7 @@ class PartenaireShopController extends Controller
     {
         $user = Auth::user();
 
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($user->role, ['superadmin', 'admin'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
 

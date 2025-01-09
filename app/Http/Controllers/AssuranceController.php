@@ -6,8 +6,10 @@ use App\Models\Assurance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
-class AssuranceController extends Controller
+ class AssuranceController extends Controller
 {
     /**
      * Afficher toutes les assurances avec leurs entreprises associées.
@@ -16,7 +18,7 @@ class AssuranceController extends Controller
     {
         $user = Auth::user();
     
-        if (!in_array($user->role, ['superadmin', 'administrateur', 'assurance_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
@@ -54,7 +56,7 @@ class AssuranceController extends Controller
     public function show($id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin','assurance_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
@@ -82,36 +84,45 @@ class AssuranceController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        
+        // Vérification des permissions
+        if (!in_array($user->role, ['superadmin', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
-
+    
+        // Validation des données
         $validated = $request->validate([
             'code_ifc' => 'required|string|unique:assurances,code_ifc|max:255',
             'libelle' => 'nullable|string|unique:assurances,libelle|max:255',
             'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096',
         ]);
-
+    
         try {
             $logoPath = null;
+    
+            // Gestion du téléversement du logo
             if ($request->hasFile('logo')) {
                 $logoName = time() . '.' . $request->logo->extension();
                 $logoPath = $request->logo->storeAs('logos/assurances', $logoName, 'public');
             }
-
+    
             $validated['logo'] = $logoPath ? 'storage/' . $logoPath : null;
-
+    
+            // Création de l'assurance
             $assurance = Assurance::create($validated);
-
+    
             return response()->json([
                 'status' => 'success',
                 'message' => 'Assurance créée avec succès.',
                 'data' => $assurance,
             ], 201);
         } catch (\Exception $e) {
+            // Log des erreurs
+            Log::error('Erreur création assurance : ', ['error' => $e->getMessage()]);
+    
             return response()->json([
                 'status' => 'error',
                 'message' => 'Erreur lors de la création de l\'assurance.',
@@ -119,11 +130,13 @@ class AssuranceController extends Controller
             ], 500);
         }
     }
+   
 
     /**
      * Mettre à jour une assurance spécifique.
      */
-    public function update(Request $request, $id)
+ 
+     public function update(Request $request, $id)
     {
         $user = Auth::user();
         if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
@@ -176,13 +189,15 @@ class AssuranceController extends Controller
         }
     }
 
+
+
     /**
      * Supprimer une assurance spécifique.
      */
     public function destroy($id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($user->role, ['superadmin', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'

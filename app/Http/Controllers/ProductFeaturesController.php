@@ -17,7 +17,7 @@ class ProductFeaturesController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des rôles
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -83,7 +83,7 @@ class ProductFeaturesController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des rôles
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest', 'administrateur'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -127,7 +127,7 @@ class ProductFeaturesController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des rôles
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',

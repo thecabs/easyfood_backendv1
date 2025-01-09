@@ -16,7 +16,7 @@ class CreateStocksTable extends Migration
             $table->timestamps();
 
             $table->foreign('id_produit')->references('id_produit')->on('produits')->onDelete('cascade');
-            $table->foreign('id_shop')->references('id_partenaire')->on('partenaire_shops')->onDelete('cascade');
+            $table->foreign('id_shop')->references('id_shop')->on('partenaire_shops')->onDelete('cascade');
         });
     }
 

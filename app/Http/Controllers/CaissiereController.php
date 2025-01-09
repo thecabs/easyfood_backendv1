@@ -24,7 +24,7 @@ class CaissiereController extends Controller
      */
     public function index()
     {
-        $caissieres = Caissiere::with(['user', 'partenaire_shop_gest'])->paginate(10);
+        $caissieres = Caissiere::with(['user', 'shop_gest'])->paginate(10);
 
         return response()->json([
             'status' => 'success',
@@ -40,7 +40,7 @@ class CaissiereController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -51,7 +51,8 @@ class CaissiereController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|unique:users,email',
             'nom' => 'required|string|max:255',
-            'id_partenaire_shop' => 'required|exists:partenaire_shops,id_partenaire',
+            'id_shop' => 'required|exists:partenaire_shops,id_shop',
+
         ]);
 
         if ($validator->fails()) {
@@ -72,7 +73,7 @@ class CaissiereController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($generatedPassword),
                 'nom' => $request->nom,
-                'id_partenaire_shop' => $request->id_partenaire_shop,
+                'id_shop' => $request->id_shop,
                 'role' => 'caissiere',
                 'statut' => 'actif',
             ]);
@@ -80,7 +81,7 @@ class CaissiereController extends Controller
             // Création de la caissière liée au partenaire
             $caissiere = Caissiere::create([
                 'id_user' => $user->id_user,
-                'id_partenaire' => $request->id_partenaire_shop,
+                'id_shop' => $request->id_shop,
             ]);
 
             // Création d'un compte bancaire pour la caissière
@@ -110,7 +111,7 @@ class CaissiereController extends Controller
                 ],
                 'caissiere' => [
                     'id_caissiere' => $caissiere->id,
-                    'id_partenaire' => $caissiere->id_partenaire,
+                    'id_shop' => $caissiere->id_shop,
                 ],
                 'compte' => [
                     'numero_compte' => $compte->numero_compte,
@@ -140,7 +141,7 @@ class CaissiereController extends Controller
         $currentUser = Auth::user();
     
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -176,7 +177,7 @@ class CaissiereController extends Controller
             ], 403);
         }
         $validated = $request->validate([
-            'id_partenaire' => 'nullable|exists:partenaire_shops,id_partenaire',
+            'id_shop' => 'nullable|exists:partenaire_shops,id_shop',
             'id_user' => 'nullable|exists:users,id_user',
         ]);
 
@@ -186,8 +187,8 @@ class CaissiereController extends Controller
             $caissiere = Caissiere::findOrFail($id_caissiere);
 
             // Mettre à jour uniquement les champs fournis
-            if (isset($validated['id_partenaire'])) {
-                $caissiere->id_partenaire = $validated['id_partenaire'];
+            if (isset($validated['id_shop'])) {
+                $caissiere->id_shop = $validated['id_shop'];
             }
 
             if (isset($validated['id_user'])) {
@@ -238,7 +239,7 @@ class CaissiereController extends Controller
         $currentUser = Auth::user();
     
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',

@@ -12,7 +12,7 @@ class CreateImagesTable extends Migration
             $table->id('id_image');
             $table->string('url_photo');
             $table->unsignedBigInteger('id_produit')->nullable();
-             $table->timestamps();
+            $table->timestamps();
 
             $table->foreign('id_produit')->references('id_produit')->on('produits')->onDelete('cascade');
          });

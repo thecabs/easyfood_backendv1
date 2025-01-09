@@ -13,11 +13,10 @@ class CreateCommandesTable extends Migration
             $table->date('date_commande');
             $table->string('statut');
             $table->decimal('montant', 15, 2);
-            $table->unsignedBigInteger('id_client');
-            $table->string('telephone');
+            $table->unsignedBigInteger('id_client')->nullable();
             $table->timestamps();
 
-            $table->foreign('id_client')->references('id_user')->on('users')->onDelete('cascade');
+            $table->foreign('id_client')->references('id_user')->on('users')->onDelete('set null');
         });
     }
 
