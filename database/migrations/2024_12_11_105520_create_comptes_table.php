@@ -16,7 +16,7 @@ class CreateComptesTable extends Migration
             $table->unsignedBigInteger('id_user');
             $table->string('pin'); // Nouveau champ pour le PIN crypté
             $table->timestamps();
-
+            
             $table->foreign('id_user')->references('id_user')->on('users')->onDelete('cascade');
         });
     }

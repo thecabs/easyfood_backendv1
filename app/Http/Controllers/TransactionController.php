@@ -28,7 +28,7 @@ class TransactionController extends Controller
         // Vérification des rôles en fonction du type de transaction
         $currentUser = Auth::user();
         if (
-            ($validatedData['type'] === 'credit' && !in_array($currentUser->role, ['administrateur', 'superadmin', 'entreprise_gest'])) ||
+            ($validatedData['type'] === 'credit' && !in_array($currentUser->role, ['admin', 'superadmin', 'entreprise_gest'])) ||
             ($validatedData['type'] === 'debit' && $currentUser->role !== 'caissiere_gest')
         ) {
             return response()->json(['message' => 'Vous n\'avez pas l\'autorisation pour effectuer cette transaction.'], 403);

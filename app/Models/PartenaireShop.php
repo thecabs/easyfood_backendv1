@@ -9,7 +9,7 @@ class PartenaireShop extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'id_partenaire';
+    protected $primaryKey = 'id_shop';
 
     protected $fillable = [
         'id_user',
@@ -27,7 +27,7 @@ class PartenaireShop extends Model
 
     public function produits()
     {
-        return $this->hasMany(Produit::class, 'id_partenaire');
+        return $this->hasMany(Produit::class, 'id_shop');
     }
 
     public function stocks()
@@ -37,6 +37,6 @@ class PartenaireShop extends Model
 
     public function caissieres()
     {
-        return $this->hasMany(Caissiere::class, 'id_partenaire');
+        return $this->hasMany(User::class, 'id_shop');
     }
 }

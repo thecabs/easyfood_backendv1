@@ -16,7 +16,7 @@ class Produit extends Model
         'id_categorie',
         'prix_ifc',
         'prix_shop',
-        'id_partenaire',
+        'id_shop',
         'statut',
         'code_barre', // Nouveau champ
     ];
@@ -28,7 +28,7 @@ class Produit extends Model
 
     public function partenaire()
     {
-        return $this->belongsTo(PartenaireShop::class, 'id_partenaire');
+        return $this->belongsTo(PartenaireShop::class, 'id_shop');
     }
 
     public function lignesFacture()

@@ -14,7 +14,7 @@ class CreateProduitsTable extends Migration
             $table->unsignedBigInteger('id_categorie');
             $table->decimal('prix_ifc', 15, 2);
             $table->decimal('prix_shop', 15, 2);
-            $table->unsignedBigInteger('id_partenaire')->nullable();
+            $table->unsignedBigInteger('id_shop')->nullable();
             $table->string('statut');
             $table->string('code_barre')->unique(); // Nouveau champ
             $table->timestamps();

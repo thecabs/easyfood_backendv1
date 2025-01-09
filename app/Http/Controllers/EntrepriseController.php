@@ -16,7 +16,7 @@ class EntrepriseController extends Controller
 {
     $user = Auth::user();
 
-    if (!in_array($user->role, ['superadmin', 'administrateur', 'assurance_gest','entreprise_gest'])) {
+    if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest','entreprise_gest'])) {
         return response()->json([
             'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
         ], 403);
@@ -52,7 +52,7 @@ class EntrepriseController extends Controller
     public function show($id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur', 'assurance_gest','entreprise_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest','entreprise_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
@@ -76,7 +76,7 @@ class EntrepriseController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur', 'assurance_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
@@ -126,7 +126,7 @@ class EntrepriseController extends Controller
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest','entreprise_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin','assurance_gest','entreprise_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
@@ -182,7 +182,7 @@ class EntrepriseController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin','assurance_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);

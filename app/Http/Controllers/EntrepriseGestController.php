@@ -21,7 +21,7 @@ class EntrepriseGestController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'administrateur','assurance_gest','entreprise_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'admin','assurance_gest','entreprise_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Accès non autorisé.',
@@ -77,7 +77,7 @@ class EntrepriseGestController extends Controller
 {
     $currentUser = Auth::user();
 
-    if (!in_array($currentUser->role, ['administrateur', 'superadmin','assurance_gest'])) {
+    if (!in_array($currentUser->role, ['admin', 'superadmin','assurance_gest'])) {
         return response()->json(['message' => 'Accès non autorisé.'], 403);
     }
 

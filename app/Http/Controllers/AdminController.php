@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 class AdminController extends Controller
 {
     /**
-     * Création d'un compte Administrateur.
+     * Création d'un compte admin.
      */
     public function register(Request $request)
     {
@@ -19,7 +19,7 @@ class AdminController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:8',
             'nom' => 'required|string|max:255',
-            'role' => 'required|in:administrateur',
+            'role' => 'required|in:admin',
         ]);
     
         if ($validator->fails()) {
@@ -33,13 +33,13 @@ class AdminController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'nom' => $request->nom,
-            'role' => 'administrateur',
+            'role' => 'admin',
             'statut' => 'actif',
         ]);
     
         return response()->json([
             'status' => 'success',
-            'message' => 'Administrateur créé avec succès.',
+            'message' => 'admin créé avec succès.',
             'user' => [
                 'id_user' => $user->id_user,
                 'email' => $user->email,
@@ -58,7 +58,7 @@ class AdminController extends Controller
         $currentUser = auth()->user();
     
         // Vérification des autorisations de l'utilisateur actuel
-        if (!in_array($currentUser->role, ['superadmin', 'administrateur'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'admin'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
     

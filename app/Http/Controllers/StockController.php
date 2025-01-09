@@ -39,8 +39,8 @@ private function logStockAction($id_stock, $action, $details = null)
             return false;
         }
 
-        return ($currentUser->role === 'partenaire_shop_gest' && $shop->id_gestionnaire === $currentUser->id_user)
-            || ($currentUser->role === 'caissiere' && $shop->id_partenaire === $stock->id_shop);
+        return ($currentUser->role === 'shop_gest' && $shop->id_gestionnaire === $currentUser->id_user)
+            || ($currentUser->role === 'caissiere' && $shop->id_shop === $stock->id_shop);
     }
 
     /**
@@ -50,7 +50,7 @@ private function logStockAction($id_stock, $action, $details = null)
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest', 'administrateur', 'caissiere'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -103,7 +103,7 @@ private function logStockAction($id_stock, $action, $details = null)
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -113,7 +113,7 @@ private function logStockAction($id_stock, $action, $details = null)
         $validated = $request->validate([
             'id_produit' => 'required|exists:produits,id_produit',
             'quantite' => 'required|integer|min:0',
-            'id_shop' => 'required|exists:partenaire_shops,id_partenaire',
+            'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);
 
         // Vérifier que l'utilisateur peut gérer le shop
@@ -215,7 +215,7 @@ $this->logStockAction($stock->id_stock, 'delete');
 {
     $currentUser = Auth::user();
 
-    if (!in_array($currentUser->role, ['superadmin', 'partenaire_shop_gest', 'administrateur'])) {
+    if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
         return response()->json([
             'status' => 'error',
             'message' => 'Vous n\'êtes pas autorisé à consulter ces logs.',

@@ -17,12 +17,12 @@ class CreateUsersTable extends Migration
             $table->string('quartier')->nullable(); // Quartier, facultatif
             $table->string('ville')->nullable(); // Ville, facultatif
             $table->enum('role', [
-                'superadmin', 'administrateur', 'employe', 
-                'entreprise_gest', 'partenaire_shop_gest', 
+                'superadmin', 'admin', 'employe', 
+                'entreprise_gest', 'shop_gest', 
                 'caissiere', 'assurance_gest'
             ])->default('employe');
             $table->unsignedBigInteger('id_entreprise')->nullable(); // Référence à l'entreprise
-            $table->unsignedBigInteger('id_partenaire_shop')->nullable(); // Référence au partenaire shop
+            $table->unsignedBigInteger('id_shop')->nullable(); // Référence au partenaire shop
             $table->unsignedBigInteger('id_assurance')->nullable(); // Ajout du champ id_assurance
 
             $table->enum('statut', ['en_attente', 'actif', 'inactif'])->default('inactif'); // Statut

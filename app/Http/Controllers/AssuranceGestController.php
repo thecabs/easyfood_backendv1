@@ -17,7 +17,7 @@ class AssuranceGestController extends Controller
 {
     $user = Auth::user();
 
-    if (!in_array($user->role, ['superadmin', 'administrateur','assurance_gest'])) {
+    if (!in_array($user->role, ['superadmin', 'admin','assurance_gest'])) {
         return response()->json([
             'status' => 'error',
             'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
@@ -70,7 +70,7 @@ class AssuranceGestController extends Controller
 public function register(Request $request)
 {
     $user = Auth::user();
-    if (!in_array($user->role, ['superadmin', 'administrateur'])) {
+    if (!in_array($user->role, ['superadmin', 'admin'])) {
         return response()->json([
             'status' => 'error',
             'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',

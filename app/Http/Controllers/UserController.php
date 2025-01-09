@@ -20,7 +20,7 @@ class UserController extends Controller
 
     
      /**
-     * Recherche les utilisateurs en fonction de leurs rôles (exclu superadmin et administrateur).
+     * Recherche les utilisateurs en fonction de leurs rôles (exclu superadmin et admin).
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -31,7 +31,7 @@ class UserController extends Controller
     
         // Valider les paramètres d'entrée
         $request->validate([
-            'role' => 'required|in:superadmin,administrateur,employe,entreprise_gest,partenaire_shop_gest,caissiere,assurance_gest',
+            'role' => 'required|in:superadmin,admin,employe,entreprise_gest,shop_gest,caissiere,assurance_gest',
         ]);
     
         $role = $request->role;
@@ -40,9 +40,9 @@ class UserController extends Controller
             $usersQuery = User::query();
     
             // Conditions basées sur le rôle de l'utilisateur connecté
-            if (in_array($user->role, ['superadmin', 'administrateur'])) {
-                // Superadmin et administrateur peuvent voir tous les utilisateurs
-            } elseif ($user->role === 'partenaire_shop_gest') {
+            if (in_array($user->role, ['superadmin', 'admin'])) {
+                // Superadmin et admin peuvent voir tous les utilisateurs
+            } elseif ($user->role === 'shop_gest') {
                 // Partenaire shop : peut voir uniquement les caissières de son shop
                 if ($role !== 'caissiere') {
                     return response()->json([
@@ -50,7 +50,7 @@ class UserController extends Controller
                     ], 403);
                 }
                 $usersQuery->where('role', 'caissiere')
-                           ->where('id_partenaire_shop', $user->id_partenaire_shop);
+                           ->where('id_shop', $user->id_shop);
             } elseif ($user->role === 'entreprise_gest') {
                 // Entreprise gest : peut voir uniquement les employés de son entreprise
                 if ($role !== 'employe') {
@@ -97,7 +97,7 @@ class UserController extends Controller
     $currentUser = Auth::user();
 
     // Vérifier si l'utilisateur connecté est autorisé à supprimer d'autres utilisateurs
-    if (!in_array($currentUser->role, ['superadmin', 'administrateur','assurance_gest'])) {
+    if (!in_array($currentUser->role, ['superadmin', 'admin','assurance_gest'])) {
         return response()->json([
             'status' => 'error',
             'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -115,11 +115,11 @@ class UserController extends Controller
             ], 404);
         }
 
-        // Vérifier que l'utilisateur à supprimer n'est pas un superadmin ou un administrateur
-        if (in_array($user->role, ['superadmin', 'administrateur'])) {
+        // Vérifier que l'utilisateur à supprimer n'est pas un superadmin ou un admin
+        if (in_array($user->role, ['superadmin', 'admin'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Impossible de supprimer un superadmin ou un administrateur.',
+                'message' => 'Impossible de supprimer un superadmin ou un admin.',
             ], 403);
         }
 
