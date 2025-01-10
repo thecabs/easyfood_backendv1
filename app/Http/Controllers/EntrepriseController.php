@@ -139,11 +139,11 @@ class EntrepriseController extends Controller
         }
 
         $validated = $request->validate([
-            'nom' => 'sometimes|required|string|max:255',
-            'secteur_activite' => 'sometimes|required|string|max:255',
-            'ville' => 'sometimes|required|string|max:255',
-            'quartier' => 'sometimes|required|string|max:255',
-            'adresse' => 'sometimes|required|string',
+            'nom' => 'sometimes|string|max:255',
+            'secteur_activite' => 'sometimes|string|max:255',
+            'ville' => 'sometimes|string|max:255',
+            'quartier' => 'sometimes|string|max:255',
+            'adresse' => 'sometimes|string',
             'id_assurance' => 'sometimes|required|exists:assurances,id_assurance',
             'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096', // Validation pour le logo
         ]);

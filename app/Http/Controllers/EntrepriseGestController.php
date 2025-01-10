@@ -32,7 +32,7 @@ class EntrepriseGestController extends Controller
             $gestionnaire = User::where('id_user', $id_user)
                 ->where('role', 'entreprise_gest')
                 ->with(['entreprise' => function ($query) {
-                    $query->select('id_entreprise', 'nom', 'secteur_activite', 'id_gestionnaire','id_assurance');
+                    $query->select('id_entreprise', 'nom', 'secteur_activite', 'id_gestionnaire','id_assurance','logo');
                 }, 'compte'])
                 ->first();
 
