@@ -89,6 +89,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Route pour enregistrer un gestionnaire assurance
     Route::post('/assurance-gest/register', [AssuranceGestController::class, 'register']);
     Route::put('/assurance-gestupdate/{id_user}', [AssuranceGestController::class, 'updateProfile']);
+    Route::post('/assurance-gestupdate/{id_user}', [AssuranceGestController::class, 'updateProfile']);
     // afficher un gestionnaire
 
  
@@ -108,6 +109,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/entreprises/{id}', [EntrepriseController::class, 'show']); // Affiche une entreprise spécifique
     Route::post('/entreprises', [EntrepriseController::class, 'store']); // Crée une nouvelle entreprise
     Route::put('/entreprises/{id}', [EntrepriseController::class, 'update']); // Met à jour une entreprise
+    Route::post('/entreprises/{id}', [EntrepriseController::class, 'update']); // Met à jour une entreprise
     Route::delete('/entreprises/{id}', [EntrepriseController::class, 'destroy']); // Supprime une entreprise
  
 });
@@ -119,6 +121,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Route pour update un gestionnaire d'entreprise
     Route::put('/entreprise-gestupdate/{id_user}', [EntrepriseGestController::class, 'updateProfile']);
+    Route::post('/entreprise-gestupdate/{id_user}', [EntrepriseGestController::class, 'updateProfile']);
 
 
     // afficher un gestionnaire
