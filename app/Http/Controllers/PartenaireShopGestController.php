@@ -196,12 +196,16 @@ class PartenaireShopGestController extends Controller
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
     
+        // Validation des entrées
         $validated = $request->validate([
             'nom' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
             'tel' => 'nullable|string|max:20',
-            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
-            'password' => 'nullable|string|min:8|confirmed', // Validation pour le mot de passe
+            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'old_password' => 'nullable|required_with:password|min:8', // Ancien mot de passe requis si nouveau mot de passe
+            'password' => 'nullable|string|min:8|confirmed', // Nouveau mot de passe avec confirmation
+        ], [
+            'old_password.required_with' => 'L\'ancien mot de passe est requis pour modifier le mot de passe.',
         ]);
     
         DB::beginTransaction();
@@ -225,7 +229,28 @@ class PartenaireShopGestController extends Controller
                 ], 403);
             }
     
-            // Mise à jour des informations autorisées
+            // Vérification et mise à jour du mot de passe
+            if (isset($validated['password'])) {
+                // Vérification de l'ancien mot de passe
+                if (!Hash::check($validated['old_password'], $userToUpdate->password)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'L\'ancien mot de passe est incorrect.',
+                    ], 400);
+                }
+    
+                // Mise à jour du mot de passe
+                $userToUpdate->password = Hash::make($validated['password']);
+            }
+    
+            // Gestion de la photo de profil
+            if ($request->hasFile('photo_profil')) {
+                $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
+                $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
+                $userToUpdate->photo_profil = 'storage/' . $filePath;
+            }
+    
+            // Mise à jour des autres informations
             if (isset($validated['nom'])) {
                 $userToUpdate->nom = $validated['nom'];
             }
@@ -234,14 +259,6 @@ class PartenaireShopGestController extends Controller
             }
             if (isset($validated['tel'])) {
                 $userToUpdate->tel = $validated['tel'];
-            }
-            if ($request->hasFile('photo_profil')) {
-                $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
-                $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
-                $userToUpdate->photo_profil = 'storage/' . $filePath;
-            }
-            if (isset($validated['password'])) {
-                $userToUpdate->password = Hash::make($validated['password']);
             }
     
             $userToUpdate->save();
@@ -270,5 +287,6 @@ class PartenaireShopGestController extends Controller
             ], 500);
         }
     }
+    
     
 }

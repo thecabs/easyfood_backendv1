@@ -108,31 +108,32 @@ class PartenaireShopController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-
+    
         if (!in_array($user->role, ['superadmin', 'admin'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
-
+    
+        // Ajouter une validation pour rendre les shops uniques
         $validated = $request->validate([
-            'nom' => 'required|string|max:255',
+            'nom' => 'required|string|max:255|unique:partenaire_shops,nom,NULL,id,ville,' . $request->ville . ',quartier,' . $request->quartier,
             'adresse' => 'required|string|max:255',
             'ville' => 'required|string|max:100',
             'quartier' => 'required|string|max:100',
             'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096', // Validation pour le logo
         ]);
-
+    
         try {
             $logoPath = null;
-
+    
             if ($request->hasFile('logo')) {
                 $logoName = time() . '.' . $request->logo->extension();
                 $logoPath = $request->logo->storeAs('logos/partenaire_shops', $logoName, 'public');
             }
-
+    
             $validated['logo'] = $logoPath ? 'storage/' . $logoPath : null;
-
+    
             $shop = PartenaireShop::create($validated);
-
+    
             return response()->json([
                 'status' => 'success',
                 'message' => 'Partenaire créé avec succès.',
@@ -146,59 +147,61 @@ class PartenaireShopController extends Controller
             ], 500);
         }
     }
+    
 
     /**
      * Mettre à jour un partenaire shop et son logo.
      */
     public function update(Request $request, $id)
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
 
-        if (!in_array($user->role, ['superadmin', 'admin'])) {
-            return response()->json(['message' => 'Accès non autorisé.'], 403);
-        }
+    if (!in_array($user->role, ['superadmin', 'admin'])) {
+        return response()->json(['message' => 'Accès non autorisé.'], 403);
+    }
 
-        $shop = PartenaireShop::find($id);
+    $shop = PartenaireShop::find($id);
 
-        if (!$shop) {
-            return response()->json(['message' => 'Partenaire introuvable.'], 404);
-        }
+    if (!$shop) {
+        return response()->json(['message' => 'Partenaire introuvable.'], 404);
+    }
 
-        $validated = $request->validate([
-            'nom' => 'sometimes|required|string|max:255',
-            'adresse' => 'sometimes|required|string|max:255',
-            'ville' => 'sometimes|required|string|max:100',
-            'quartier' => 'sometimes|required|string|max:100',
-            'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096', // Validation pour le logo
-        ]);
+    $validated = $request->validate([
+        'nom' => 'sometimes|required|string|max:255|unique:partenaire_shops,nom,' . $shop->id . ',id,ville,' . $request->ville . ',quartier,' . $request->quartier,
+        'adresse' => 'sometimes|required|string|max:255',
+        'ville' => 'sometimes|required|string|max:100',
+        'quartier' => 'sometimes|required|string|max:100',
+        'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096',
+    ]);
 
-        try {
-            if ($request->hasFile('logo')) {
-                // Supprimer l'ancien logo
-                if ($shop->logo) {
-                    Storage::disk('public')->delete(str_replace('storage/', '', $shop->logo));
-                }
-
-                $logoName = time() . '.' . $request->logo->extension();
-                $logoPath = $request->logo->storeAs('logos/partenaire_shops', $logoName, 'public');
-                $validated['logo'] = 'storage/' . $logoPath;
+    try {
+        if ($request->hasFile('logo')) {
+            // Supprimer l'ancien logo
+            if ($shop->logo) {
+                Storage::disk('public')->delete(str_replace('storage/', '', $shop->logo));
             }
 
-            $shop->update($validated);
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Partenaire mis à jour avec succès.',
-                'data' => $shop,
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Erreur lors de la mise à jour du partenaire.',
-                'error' => $e->getMessage(),
-            ], 500);
+            $logoName = time() . '.' . $request->logo->extension();
+            $logoPath = $request->logo->storeAs('logos/partenaire_shops', $logoName, 'public');
+            $validated['logo'] = 'storage/' . $logoPath;
         }
+
+        $shop->update($validated);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Partenaire mis à jour avec succès.',
+            'data' => $shop,
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Erreur lors de la mise à jour du partenaire.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
+
 
     /**
      * Supprimer un partenaire shop et son logo.

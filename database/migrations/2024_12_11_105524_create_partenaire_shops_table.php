@@ -19,7 +19,7 @@ class CreatePartenaireShopsTable extends Migration
             $table->timestamps();
 
             // Clé étrangère vers la table users
-            $table->foreign('id_gestionnaire')->references('id_user')->on('users')->onDelete('cascade');
+            $table->foreign('id_gestionnaire')->references('id_user')->on('users')->onDelete('set null');
         });
     }
 

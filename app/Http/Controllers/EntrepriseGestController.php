@@ -195,8 +195,11 @@ class EntrepriseGestController extends Controller
             'nom' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
             'tel' => 'nullable|string|max:20',
-            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
-            'password' => 'nullable|string|min:8|confirmed', // Validation pour le mot de passe
+            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'old_password' => 'nullable|required_with:password|min:8', // Exige l'ancien mot de passe si un nouveau mot de passe est fourni
+            'password' => 'nullable|string|min:8|confirmed',
+        ], [
+            'old_password.required_with' => 'L\'ancien mot de passe est requis pour modifier le mot de passe.',
         ]);
     
         DB::beginTransaction();
@@ -228,6 +231,15 @@ class EntrepriseGestController extends Controller
                 $userToUpdate->photo_profil = 'storage/' . $filePath;
             }
             if (isset($validated['password'])) {
+                // Vérification de l'ancien mot de passe
+                if (!Hash::check($validated['old_password'], $userToUpdate->password)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'L\'ancien mot de passe est incorrect.',
+                    ], 400);
+                }
+    
+                // Mise à jour du nouveau mot de passe
                 $userToUpdate->password = Hash::make($validated['password']);
             }
     
@@ -257,5 +269,6 @@ class EntrepriseGestController extends Controller
             ], 500);
         }
     }
+    
     
 }

@@ -78,7 +78,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/assurances', [AssuranceController::class, 'index']); // Liste des assurances
     Route::get('/assurances/{id}', [AssuranceController::class, 'show']); // Voir une assurance
     Route::post('/assurances', [AssuranceController::class, 'store']); // Créer une assurance
-    Route::put('/assurances/{id}', [AssuranceController::class, 'update']); // Modifier une assurance
+    Route::post('/assurances/{id}', [AssuranceController::class, 'update']); // Modifier une assurance
     Route::delete('/assurances/{id}', [AssuranceController::class, 'destroy']); // Supprimer une assurance 
 });
 

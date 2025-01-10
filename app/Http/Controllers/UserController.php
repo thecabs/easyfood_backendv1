@@ -17,6 +17,7 @@ class UserController extends Controller
     const STATUT_INACTIF = 'inactif';
     const STATUT_EN_ATTENTE = 'en_attente';
     const STATUT_ACTIF = 'actif';
+    const STATUT_TEMPORAIRE = 'temporaire';
 
     
      /**

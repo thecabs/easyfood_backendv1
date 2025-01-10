@@ -39,4 +39,10 @@ class PartenaireShop extends Model
     {
         return $this->hasMany(User::class, 'id_shop');
     }
+
+    public function categories()
+{
+    return $this->hasMany(Categorie::class, 'id_shop');
+}
+
 }

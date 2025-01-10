@@ -44,5 +44,23 @@ class Produit extends Model
     {
         return $this->hasMany(Image::class, 'id_produit', 'id_produit');
     }
+    // public function shop()
+    // {
+    //     return $this->belongsTo(PartenaireShop::class);
+    // }
 
+    public function shop()
+    {
+        return $this->hasOneThrough(
+            PartenaireShop::class,
+            Categorie::class,
+            'id',         // Clé primaire de la table `categories`
+            'id_shop',    // Clé étrangère dans `partenaire_shops`
+            'id_categorie', // Clé étrangère dans `produits`
+            'id_shop'     // Clé locale dans `categories`
+        );
+    }
+    
+
+    
 }

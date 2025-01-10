@@ -9,10 +9,23 @@ class Categorie extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['libelle'];
+    // Champs assignables en masse
+    protected $fillable = ['libelle', 'id_shop'];
 
+    /**
+     * Relation avec le modèle Produit
+     * Une catégorie peut avoir plusieurs produits
+     */
     public function produits()
     {
         return $this->hasMany(Produit::class, 'id_categorie');
+    }
+
+    /**
+     * Relation avec le modèle PartenaireShop
+      */
+    public function shop()
+    {
+        return $this->belongsTo(PartenaireShop::class, 'id_shop');
     }
 }

@@ -159,7 +159,7 @@ public function register(Request $request)
 }
 
 
-    public function updateProfile(Request $request, $id_user)
+public function updateProfile(Request $request, $id_user)
 {
     $currentUser = Auth::user();
 
@@ -188,10 +188,12 @@ public function register(Request $request)
         'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
         'tel' => 'nullable|string|max:20',
         'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+        'old_password' => 'nullable|required_with:password|min:8',
         'password' => 'nullable|min:8|confirmed',
     ], [
         'nom.unique' => 'Ce nom est déjà utilisé.',
         'email.unique' => 'Cet email est déjà utilisé.',
+        'old_password.required_with' => 'L\'ancien mot de passe est requis pour modifier le mot de passe.',
     ]);
 
     DB::beginTransaction();
@@ -213,6 +215,14 @@ public function register(Request $request)
             $userToUpdate->photo_profil = 'storage/' . $filePath;
         }
         if (isset($validated['password'])) {
+            // Vérification de l'ancien mot de passe
+            if (!Hash::check($validated['old_password'], $userToUpdate->password)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'L\'ancien mot de passe est incorrect.',
+                ], 400);
+            }
+
             $userToUpdate->password = Hash::make($validated['password']);
         }
 

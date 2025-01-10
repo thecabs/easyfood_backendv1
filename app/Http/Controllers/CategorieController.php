@@ -6,26 +6,28 @@ use Illuminate\Http\Request;
 use App\Models\Categorie;
 use Illuminate\Support\Facades\Auth;
 
-
 class CategorieController extends Controller
 {
     /**
-     * Liste des catégories.
+     * Liste des catégories accessibles par l'utilisateur.
      */
-
-     
     public function index()
     {
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-        $categories = Categorie::all();
+
+        // Si l'utilisateur est un gestionnaire de shop, ne récupérer que ses catégories
+        $categories = $currentUser->role === 'shop_gest'
+            ? Categorie::where('id_shop', $currentUser->id_shop)->get()
+            : Categorie::all();
+
         return response()->json([
             'status' => 'success',
             'data' => $categories,
@@ -33,27 +35,28 @@ class CategorieController extends Controller
     }
 
     /**
-     * Création d'une nouvelle catégorie.
+     * Création d'une nouvelle catégorie pour un shop.
      */
     public function store(Request $request)
     {
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin','shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
 
-        
         $validated = $request->validate([
             'libelle' => 'required|string|unique:categories,libelle|max:255',
+            'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);
 
         $categorie = Categorie::create([
             'libelle' => $validated['libelle'],
+            'id_shop' => $currentUser->role === 'shop_gest' ? $currentUser->id_shop : $request->id_shop,
         ]);
 
         return response()->json([
@@ -71,12 +74,13 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
+
         $categorie = Categorie::find($id);
 
         if (!$categorie) {
@@ -84,6 +88,14 @@ class CategorieController extends Controller
                 'status' => 'error',
                 'message' => 'Catégorie introuvable.',
             ], 404);
+        }
+
+        // Vérifier l'accès pour les gestionnaires de shop
+        if ($currentUser->role === 'shop_gest' && $categorie->id_shop !== $currentUser->id_shop) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Accès non autorisé à cette catégorie.',
+            ], 403);
         }
 
         return response()->json([
@@ -106,6 +118,7 @@ class CategorieController extends Controller
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
+
         $categorie = Categorie::find($id);
 
         if (!$categorie) {
@@ -115,8 +128,17 @@ class CategorieController extends Controller
             ], 404);
         }
 
+        // Vérifier l'accès pour les gestionnaires de shop
+        if ($currentUser->role === 'shop_gest' && $categorie->id_shop !== $currentUser->id_shop) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Accès non autorisé à cette catégorie.',
+            ], 403);
+        }
+
         $validated = $request->validate([
-            'libelle' => 'required|string|unique:categories,libelle|max:255',
+            'libelle' => 'required|string|unique:categories,libelle,' . $id . '|max:255',
+            
         ]);
 
         $categorie->update([
@@ -144,22 +166,28 @@ class CategorieController extends Controller
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
+
         $categorie = Categorie::find($id);
 
         if (!$categorie) {
             return response()->json([
                 'status' => 'error',
-
                 'message' => 'Catégorie introuvable.',
             ], 404);
+        }
+
+        // Vérifier l'accès pour les gestionnaires de shop
+        if ($currentUser->role === 'shop_gest' && $categorie->id_shop !== $currentUser->id_shop) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Accès non autorisé à cette catégorie.',
+            ], 403);
         }
 
         $categorie->delete();
 
         return response()->json([
             'status' => 'success',
-            'data' => $categorie,
-
             'message' => 'Catégorie supprimée avec succès.',
         ], 200);
     }
