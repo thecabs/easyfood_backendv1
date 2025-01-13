@@ -28,6 +28,9 @@ class CategorieController extends Controller
             ? Categorie::where('id_shop', $currentUser->id_shop)->get()
             : Categorie::all();
 
+         // Récupérer toutes les categorie avec leurs shops
+         $categories = Categorie::with(['shop:id_shop,nom,logo,quartier,ville' ])->get();
+
         return response()->json([
             'status' => 'success',
             'data' => $categories,
@@ -42,7 +45,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -112,7 +115,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -160,7 +163,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',

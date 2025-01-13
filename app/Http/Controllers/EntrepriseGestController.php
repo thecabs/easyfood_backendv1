@@ -196,14 +196,13 @@ class EntrepriseGestController extends Controller
             'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
             'tel' => 'nullable|string|max:20',
             'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
-            'old_password' => 'nullable|required_with:password|min:8', // Exige l'ancien mot de passe si un nouveau mot de passe est fourni
+            'old_password' => 'nullable|string|required_with:password|min:8', // Exige l'ancien mot de passe si un nouveau mot de passe est fourni
             'password' => 'nullable|string|min:8|confirmed',
         ], [
             'old_password.required_with' => 'L\'ancien mot de passe est requis pour modifier le mot de passe.',
         ]);
     
         DB::beginTransaction();
-    
         try {
             $userToUpdate = User::findOrFail($id_user);
     
