@@ -62,6 +62,7 @@ class PartenaireShopController extends Controller
                     'nom' => $shop->gestionnaire->nom,
                     'email' => $shop->gestionnaire->email,
                     'tel' => $shop->gestionnaire->tel,
+                    'photo_profil' => $shop->gestionnaire->photo_profil,
                 ] : null,
             ];
         });
@@ -156,7 +157,7 @@ class PartenaireShopController extends Controller
 {
     $user = Auth::user();
 
-    if (!in_array($user->role, ['superadmin', 'admin'])) {
+    if (!in_array($user->role, ['superadmin', 'admin','shop_gest'])) {
         return response()->json(['message' => 'Accès non autorisé.'], 403);
     }
 
