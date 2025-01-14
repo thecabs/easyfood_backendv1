@@ -172,7 +172,7 @@ class CaissiereController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
