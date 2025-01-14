@@ -3,11 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Caissiere;
 use App\Models\User;
 use App\Models\Compte;
-
-
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
@@ -15,22 +12,52 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
- 
 
 class CaissiereController extends Controller
 {
     /**
      * Lister toutes les caissières
      */
-    public function index()
+    public function index(Request $request)
     {
-        $caissieres = Caissiere::with(['user', 'shop_gest'])->paginate(10);
-
+        $currentUser = Auth::user(); // Obtenir l'utilisateur authentifié
+    
+        // Vérification du rôle de l'utilisateur
+        if ($currentUser->role === 'superadmin') {
+            $caissieres = User::where('role', 'caissiere')->with(['partenaireShop'])->get();
+        } elseif ($currentUser->role === 'shop_gest') {
+            $caissieres = User::where('role', 'caissiere')->where('id_shop', $currentUser->id_shop)->with(['partenaireShop'])->get();
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+            ], 403);
+        }
+    
+        // Supprimer les champs `id_entreprise` et `id_assurance` avant de retourner la réponse
+        $caissieres = $caissieres->map(function ($caissiere) {
+            unset($caissiere->id_entreprise, $caissiere->id_assurance);
+            return $caissiere;
+        });
+    
+        // Pagination manuelle
+        $perPage = $request->input('per_page', 10);
+        $currentPage = $request->input('page', 1);
+        $paginated = $caissieres->slice(($currentPage - 1) * $perPage, $perPage)->values();
+    
         return response()->json([
             'status' => 'success',
-            'data' => $caissieres,
+            'data' => $paginated,
+            'pagination' => [
+                'total' => $caissieres->count(),
+                'per_page' => $perPage,
+                'current_page' => $currentPage,
+                'last_page' => ceil($caissieres->count() / $perPage),
+            ],
         ], 200);
     }
+    
+    
 
     /**
      * Ajouter une nouvelle caissière
@@ -52,7 +79,6 @@ class CaissiereController extends Controller
             'email' => 'required|email|unique:users,email',
             'nom' => 'required|string|max:255',
             'id_shop' => 'required|exists:partenaire_shops,id_shop',
-
         ]);
 
         if ($validator->fails()) {
@@ -78,12 +104,6 @@ class CaissiereController extends Controller
                 'statut' => 'actif',
             ]);
 
-            // Création de la caissière liée au partenaire
-            $caissiere = Caissiere::create([
-                'id_user' => $user->id_user,
-                'id_shop' => $request->id_shop,
-            ]);
-
             // Création d'un compte bancaire pour la caissière
             $defaultPin = Compte::generateDefaultPin();
             $compte = Compte::create([
@@ -91,7 +111,7 @@ class CaissiereController extends Controller
                 'solde' => 0,
                 'date_creation' => now(),
                 'id_user' => $user->id_user,
-                'pin' => Hash::make($defaultPin), // PIN crypté
+                'pin' => Hash::make($defaultPin),
             ]);
 
             // Envoi d'un email avec les informations de connexion et le compte bancaire
@@ -102,27 +122,12 @@ class CaissiereController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'La caissière a été créée avec succès, un compte bancaire a été généré et un email contenant les informations a été envoyé.',
-                'user' => [
-                    'id_user' => $user->id_user,
-                    'nom' => $user->nom,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'statut' => $user->statut,
-                ],
-                'caissiere' => [
-                    'id_caissiere' => $caissiere->id,
-                    'id_shop' => $caissiere->id_shop,
-                ],
-                'compte' => [
-                    'numero_compte' => $compte->numero_compte,
-                    'solde' => $compte->solde,
-                ],
+                'user' => $user,
+                'compte' => $compte,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-
             Log::error('Erreur lors de l\'enregistrement de la caissière : ' . $e->getMessage());
-
             return response()->json([
                 'status' => 'error',
                 'message' => 'Une erreur est survenue lors de la création de la caissière.',
@@ -134,22 +139,20 @@ class CaissiereController extends Controller
     /**
      * Afficher les détails d'une caissière spécifique
      */
-    public function show($id_caissiere)
-
-    
+    public function show($id_user)
     {
         $currentUser = Auth::user();
-    
-        // Vérification des permissions
+
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
-        }   
-        $caissiere = Caissiere::with(['user', 'partenaireShop'])->find($id_caissiere);
+        }
 
-        if (!$caissiere) {
+        $user = User::where('role', 'caissiere')->with('shop_gest')->find($id_user);
+
+        if (!$user) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Caissière introuvable.',
@@ -158,71 +161,39 @@ class CaissiereController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $caissiere,
+            'data' => $user,
         ], 200);
     }
 
     /**
      * Mettre à jour une caissière
      */
-    public function update(Request $request, $id_caissiere)
-    {   
+    public function update(Request $request, $id_user)
+    {
         $currentUser = Auth::user();
-    
-        // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'caissiere'])) {
+
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-        $validated = $request->validate([
+
+        $validator = $request->validate([
             'id_shop' => 'nullable|exists:partenaire_shops,id_shop',
-            'id_user' => 'nullable|exists:users,id_user',
+            'email' => 'nullable|email|unique:users,email,' . $id_user,
+            'nom' => 'nullable|string|max:255',
         ]);
 
-        DB::beginTransaction();
-
         try {
-            $caissiere = Caissiere::findOrFail($id_caissiere);
-
-            // Mettre à jour uniquement les champs fournis
-            if (isset($validated['id_shop'])) {
-                $caissiere->id_shop = $validated['id_shop'];
-            }
-
-            if (isset($validated['id_user'])) {
-                // Vérifier que l'utilisateur a le rôle adéquat
-                $user = User::findOrFail($validated['id_user']);
-                if ($user->role !== 'caissiere') {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'L\'utilisateur spécifié n\'a pas le rôle de caissière.',
-                    ], 403);
-                }
-
-                $caissiere->id_user = $validated['id_user'];
-            }
-
-            $caissiere->save();
-
-            DB::commit();
-
+            $user = User::where('role', 'caissiere')->findOrFail($id_user);
+            $user->update($validator);
             return response()->json([
                 'status' => 'success',
                 'message' => 'Caissière mise à jour avec succès.',
-                'data' => $caissiere,
+                'data' => $user,
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Caissière introuvable.',
-            ], 404);
         } catch (\Exception $e) {
-            DB::rollBack();
-
             return response()->json([
                 'status' => 'error',
                 'message' => 'Erreur lors de la mise à jour.',
@@ -234,31 +205,24 @@ class CaissiereController extends Controller
     /**
      * Supprimer une caissière
      */
-    public function destroy($id_caissiere)
+    public function destroy($id_user)
     {
         $currentUser = Auth::user();
-    
-        // Vérification des permissions
+
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-        try {
-            $caissiere = Caissiere::findOrFail($id_caissiere);
-            $caissiere->delete();
 
+        try {
+            $user = User::where('role', 'caissiere')->findOrFail($id_user);
+            $user->delete();
             return response()->json([
                 'status' => 'success',
-                'data' => $caissiere,
                 'message' => 'Caissière supprimée avec succès.',
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Caissière introuvable.',
-            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
