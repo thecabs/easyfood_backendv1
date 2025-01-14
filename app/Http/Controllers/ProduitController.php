@@ -15,6 +15,7 @@ class ProduitController extends Controller
     {
         $currentUser = Auth::user();
     
+        // Vérification des permissions
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
             return response()->json([
                 'status' => 'error',
@@ -22,50 +23,46 @@ class ProduitController extends Controller
             ], 403);
         }
     
-        if (in_array($currentUser->role, ['superadmin', 'admin'])) {
-            // Superadmin et admin voient tous les produits
-            $produits = Produit::with(['categorie', 'partenaire', 'stock', 'images'])->get();
-        } else {
-            // shop_gest et caissiere voient uniquement les produits de leur partenaire
-            $produits = Produit::with(['categorie', 'partenaire', 'stock', 'images'])
-                ->where('id_shop', $currentUser->id_user)
-                ->get();
+        // Construction de la requête des produits
+        $produitsQuery = Produit::with(['categorie', 'partenaire', 'stock', 'images']);
+    
+        if (in_array($currentUser->role, ['shop_gest', 'caissiere'])) {
+            // Limiter les produits au shop de l'utilisateur
+            $produitsQuery->where('id_shop', $currentUser->id_shop); // Assurez-vous que 'id_shop' est correct
         }
     
-        // Formatage des produits
-        $formattedProduits = $produits->map(function ($produit) {
+        // Pagination des résultats
+        $perPage = $request->input('per_page', 10);
+        $produits = $produitsQuery->paginate($perPage);
+    
+        // Formatage des données produits
+        $formattedProduits = $produits->getCollection()->transform(function ($produit) {
             return [
                 'id_produit' => $produit->id_produit,
                 'nom' => $produit->nom,
-                'categorie' => $produit->categorie->nom ?? null,
+                'categorie' => $produit->categorie->libelle ?? null,
                 'prix_ifc' => $produit->prix_ifc,
                 'prix_shop' => $produit->prix_shop,
                 'statut' => $produit->statut,
                 'code_barre' => $produit->code_barre,
                 'quantite_disponible' => $produit->stock->quantite ?? 0,
                 'shop' => [
-                'nom' => $produit->partenaire->nom ?? null,
-                'logo' => $produit->partenaire->logo ?? null,
-                  ],                'photos' => $produit->images->map(function ($image) {
-                    return $image->url_photo;
-                }),
+                    'nom' => $produit->partenaire->nom ?? null,
+                    'logo' => $produit->partenaire->logo ?? null,
+                ],
+                'photos' => $produit->images->pluck('url_photo'),
             ];
         });
     
-        // Pagination manuelle
-        $perPage = $request->input('per_page', 10);
-        $currentPage = $request->input('page', 1);
-        $paginated = $formattedProduits->slice(($currentPage - 1) * $perPage, $perPage)->values();
-    
-        // Construire la réponse paginée
+        // Retour de la réponse paginée
         return response()->json([
             'status' => 'success',
-            'data' => $paginated,
+            'data' => $formattedProduits,
             'pagination' => [
-                'total' => $formattedProduits->count(),
-                'per_page' => $perPage,
-                'current_page' => $currentPage,
-                'last_page' => ceil($formattedProduits->count() / $perPage),
+                'total' => $produits->total(),
+                'per_page' => $produits->perPage(),
+                'current_page' => $produits->currentPage(),
+                'last_page' => $produits->lastPage(),
             ],
         ], 200);
     }

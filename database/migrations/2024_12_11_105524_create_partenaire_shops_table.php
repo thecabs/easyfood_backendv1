@@ -11,6 +11,7 @@ class CreatePartenaireShopsTable extends Migration
         Schema::create('partenaire_shops', function (Blueprint $table) {
             $table->id('id_shop');
             $table->unsignedBigInteger('id_gestionnaire')->nullable(); // ID utilisateur
+            $table->unsignedBigInteger('id_compte')->nullable(); // ID compte bancaire
             $table->string('nom');
             $table->string('adresse');
             $table->string('ville');
@@ -20,6 +21,9 @@ class CreatePartenaireShopsTable extends Migration
 
             // Clé étrangère vers la table users
             $table->foreign('id_gestionnaire')->references('id_user')->on('users')->onDelete('set null');
+            
+            // Clé étrangère vers la table comptes
+            $table->foreign('id_compte')->references('id_compte')->on('comptes')->onDelete('set null');
         });
     }
 
@@ -28,6 +32,3 @@ class CreatePartenaireShopsTable extends Migration
         Schema::dropIfExists('partenaire_shops');
     }
 }
-
-
- 

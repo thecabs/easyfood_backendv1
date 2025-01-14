@@ -28,4 +28,9 @@ class Categorie extends Model
     {
         return $this->belongsTo(PartenaireShop::class, 'id_shop');
     }
+
+   
+
 }
+
+

@@ -78,13 +78,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/assurances', [AssuranceController::class, 'index']); // Liste des assurances
     Route::get('/assurances/{id}', [AssuranceController::class, 'show']); // Voir une assurance
     Route::post('/assurances', [AssuranceController::class, 'store']); // Créer une assurance
-<<<<<<< HEAD
+
     Route::post('/assurances/{id}', [AssuranceController::class, 'update']); // Modifier une assurance
-=======
     Route::post('/assurances/{id}', [AssuranceController::class, 'update']); // Créer une assurance
     Route::put('/assurances/{id}', [AssuranceController::class, 'update']); // Modifier une assurance
->>>>>>> 6feea920016b49f2fa69177cf261890fa8b70cab
-    Route::delete('/assurances/{id}', [AssuranceController::class, 'destroy']); // Supprimer une assurance 
+     Route::delete('/assurances/{id}', [AssuranceController::class, 'destroy']); // Supprimer une assurance 
 });
 
 
