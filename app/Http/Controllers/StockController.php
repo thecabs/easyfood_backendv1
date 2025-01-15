@@ -74,7 +74,7 @@ private function logStockAction($id_stock, $action, $details = null)
     public function show($id)
     {
         $currentUser = Auth::user();
-        $stock = Stock::with('produit')->find($id);
+        $stock = Stock::with('produit')->find($id); 
 
         if (!$stock) {
             return response()->json([

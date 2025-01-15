@@ -23,7 +23,7 @@ class CaissiereController extends Controller
         $currentUser = Auth::user(); // Obtenir l'utilisateur authentifié
     
         // Vérification du rôle de l'utilisateur
-        if ($currentUser->role === 'superadmin') {
+        if ($currentUser->role === 'superadmin' OR $currentUser->role === 'admin') {
             $caissieres = User::where('role', 'caissiere')->with(['partenaireShop'])->get();
         } elseif ($currentUser->role === 'shop_gest') {
             $caissieres = User::where('role', 'caissiere')->where('id_shop', $currentUser->id_shop)->with(['partenaireShop'])->get();
@@ -36,7 +36,8 @@ class CaissiereController extends Controller
     
         // Supprimer les champs `id_entreprise` et `id_assurance` avant de retourner la réponse
         $caissieres = $caissieres->map(function ($caissiere) {
-            unset($caissiere->id_entreprise, $caissiere->id_assurance);
+            $caissiere->shop = $caissiere->partenaireShop;
+            unset($caissiere->id_entreprise, $caissiere->id_assurance,$caissiere->partenaireShop, $caissier->id_partenaire_shop);
             return $caissiere;
         });
     
