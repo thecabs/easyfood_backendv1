@@ -47,10 +47,13 @@ class ProduitController extends Controller
                 'code_barre' => $produit->code_barre,
                 'quantite_disponible' => $produit->stock->quantite ?? 0,
                 'shop' => [
+                    'id_shop' => $produit->partenaire->id_shop ?? null,
                     'nom' => $produit->partenaire->nom ?? null,
                     'logo' => $produit->partenaire->logo ?? null,
+                    'ville' => $produit->partenaire->ville ?? null,
+                    'quartier' => $produit->partenaire->quartier ?? null,
                 ],
-                'photos' => $produit->images->pluck('url_photo'),
+                'photos' => $produit->images,
             ];
         });
     
@@ -100,19 +103,23 @@ class ProduitController extends Controller
         'data' => [
             'id_produit' => $produit->id_produit,
             'nom' => $produit->nom,
-            'categorie' => $produit->categorie->libelle ?? null,
+            'categorie' => [
+                'id_categorie' => $produit->categorie->id ?? null,
+                'libelle' => $produit->categorie->libelle ?? null,
+            ],
             'prix_ifc' => $produit->prix_ifc,
             'prix_shop' => $produit->prix_shop,
             'statut' => $produit->statut,
             'code_barre' => $produit->code_barre,
             'quantite_disponible' => $produit->stock->quantite ?? 0,
             'photos' => $produit->images->map(function ($image) {
-                return $image->url_photo;
+                return $image;
             }),
             'shop' => [
                 'nom' => $produit->partenaire->nom ?? null,
                 'logo' => $produit->partenaire->logo ?? null,
             ],
+            'categorie' 
         ],
     ], 200);
 }
@@ -168,7 +175,7 @@ class ProduitController extends Controller
     {
         $currentUser = Auth::user();
     
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -197,10 +204,10 @@ class ProduitController extends Controller
                 function ($attribute, $value, $fail) use ($request, $produit) {
                     $exists = Produit::where('code_barre', $value)
                         ->where('id_shop', $request->id_shop ?? $produit->id_shop)
-                        ->where('id', '!=', $produit->id)
+                        ->where('id_produit', '!=', $produit->id_produit)
                         ->exists();
                     if ($exists) {
-                        $fail('Le code-barre existe déjà pour ce magasin.');
+                        $fail('Ce code-barre existe déjà pour ce magasin.');
                     }
                 },
             ],
