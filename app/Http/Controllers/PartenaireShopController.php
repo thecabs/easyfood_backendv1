@@ -51,7 +51,7 @@ class PartenaireShopController extends Controller
         // Formatage des données pour inclure le gestionnaire
         $formattedShops = $shops->map(function ($shop) {
             return [
-                'id' => $shop->id_shop,
+                'id_shop' => $shop->id_shop,
                 'nom' => $shop->nom,
                 'adresse' => $shop->adresse,
                 'ville' => $shop->ville,
@@ -168,7 +168,7 @@ class PartenaireShopController extends Controller
     }
 
     $validated = $request->validate([
-        'nom' => 'sometimes|required|string|max:255|unique:partenaire_shops,nom,' . $shop->id . ',id,ville,' . $request->ville . ',quartier,' . $request->quartier,
+        'nom' => 'sometimes|required|string|max:255|unique:partenaire_shops,nom,' . $shop->id . ',id_shop,ville,' . $request->ville . ',quartier,' . $request->quartier,
         'adresse' => 'sometimes|required|string|max:255',
         'ville' => 'sometimes|required|string|max:100',
         'quartier' => 'sometimes|required|string|max:100',

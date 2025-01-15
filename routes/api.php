@@ -54,14 +54,12 @@ Route::prefix('superadmin')->group(function () {
  
     Route::post('/admin/register', [AdminController::class, 'register']);
 
-
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::prefix('admin')->group(function () {
-         Route::put('/update/{id_user}', [AdminController::class, 'updateProfile']);
-        Route::delete('/delete/{id_user}', [AdminController::class, 'deleteUser']);
-    
+    Route::middleware(['auth:sanctum'])->group(function () {
+        Route::prefix('admin')->group(function () {
+            Route::put('/update/{id_user}', [AdminController::class, 'updateProfile']);
+            Route::delete('/delete/{id_user}', [AdminController::class, 'deleteUser']);
+        });
     });
-});
 
 
 
@@ -255,7 +253,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
  
 Route::middleware(['auth:sanctum'])->group(function () {
     // Routes pour les caissières
-    Route::get('caissieres', [CaissiereController::class, 'index']); // Lister toutes les caissières
+    Route::get('caissieres/', [CaissiereController::class, 'index']); // Lister toutes les caissières
     Route::post('caissieres/register', [CaissiereController::class, 'register']); // Ajouter une caissière
     Route::get('caissieres/{id_caissiere}', [CaissiereController::class, 'show']); // Afficher une caissière spécifique
     Route::put('caissieres/{id_caissiere}', [CaissiereController::class, 'update']); // Mettre à jour une caissière

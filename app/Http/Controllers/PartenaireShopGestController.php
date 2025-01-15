@@ -33,7 +33,7 @@ class PartenaireShopGestController extends Controller
                 ->where('role', 'shop_gest')
                 ->with([
                     'partenaireShop' => function ($query) {
-                        $query->select('id_shop', 'nom', 'adresse', 'id_gestionnaire');
+                        $query->select('id_shop', 'nom', 'adresse','ville','quartier', 'id_gestionnaire','logo');
                     },
                     'compte'
                 ])
