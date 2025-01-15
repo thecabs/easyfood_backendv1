@@ -47,54 +47,56 @@ private function logStockAction($id_stock, $action, $details = null)
      * Liste des stocks.
      */
     public function index()
-    {
-        $currentUser = Auth::user();
+{
+    $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
-        }
-
-        // Récupérer uniquement les stocks que l'utilisateur peut gérer
-        $stocks = Stock::with('produit')->get()->filter(function ($stock) use ($currentUser) {
-            return $this->canAccessStock($stock, $currentUser);
-        });
-
+    if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
         return response()->json([
-            'status' => 'success',
-            'data' => $stocks->values(),
-        ], 200);
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+        ], 403);
     }
+
+     $stocks = Stock::with(['produit.images'])->get()->filter(function ($stock) use ($currentUser) {
+        return $this->canAccessStock($stock, $currentUser);
+    });
+
+     return response()->json([
+        'status' => 'success',
+        'data' => $stocks->values(),
+    ], 200);
+}
+
 
     /**
      * Afficher un stock spécifique.
      */
     public function show($id)
-    {
-        $currentUser = Auth::user();
-        $stock = Stock::with('produit')->find($id);
+{
+    $currentUser = Auth::user();
+    // Charger les relations produit et images associées
+    $stock = Stock::with(['produit.images'])->find($id);
 
-        if (!$stock) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Stock introuvable.',
-            ], 404);
-        }
-
-        if (!$this->canAccessStock($stock, $currentUser)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à accéder à ce stock.',
-            ], 403);
-        }
-
+    if (!$stock) {
         return response()->json([
-            'status' => 'success',
-            'data' => $stock,
-        ], 200);
+            'status' => 'error',
+            'message' => 'Stock introuvable.',
+        ], 404);
     }
+
+    if (!$this->canAccessStock($stock, $currentUser)) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à accéder à ce stock.',
+        ], 403);
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'data' => $stock,
+    ], 200);
+}
+
 
     /**
      * Création d'un stock.
