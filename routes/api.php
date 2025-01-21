@@ -166,6 +166,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Mettre à jour un employé
     Route::put('/employes', [EmployeController::class, 'update']);
+    Route::post('/employes', [EmployeController::class, 'update']);
    });
 
 
