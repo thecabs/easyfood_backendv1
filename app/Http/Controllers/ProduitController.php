@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Produit;
+use App\Models\Stock;
+
 use Illuminate\Support\Facades\Auth;
 
 class ProduitController extends Controller
@@ -133,6 +135,7 @@ class ProduitController extends Controller
     {
         $currentUser = Auth::user();
     
+        // Vérification des rôles autorisés
         if (!in_array($currentUser->role, ['superadmin', 'admin', 'shop_gest'])) {
             return response()->json([
                 'status' => 'error',
@@ -140,6 +143,7 @@ class ProduitController extends Controller
             ], 403);
         }
     
+        // Validation des données entrantes
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'id_categorie' => 'required|exists:categories,id',
@@ -162,20 +166,32 @@ class ProduitController extends Controller
             ],
         ]);
     
+        // Création du produit
         $produit = Produit::create($validated);
+    
+        // Création du stock associé avec une quantité initiale de zéro
+        $stock = Stock::create([
+            'id_produit' => $produit->id_produit,
+            'quantite' => 0, // Quantité initiale nulle
+            'id_shop' => $validated['id_shop'],
+        ]);
     
         return response()->json([
             'status' => 'success',
-            'message' => 'Produit créé avec succès.',
-            'data' => $produit,
+            'message' => 'Produit et stock créés avec succès.',
+            'data' => [
+                'produit' => $produit,
+                'stock' => $stock,
+            ],
         ], 201);
     }
+    
     
     public function update(Request $request, $id)
     {
         $currentUser = Auth::user();
     
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -184,7 +200,7 @@ class ProduitController extends Controller
     
         $produit = Produit::find($id);
     
-        if (!$produit || ($currentUser->role === 'shop_gest' && $produit->id_shop !== $currentUser->id_user)) {
+        if (!$produit || ($currentUser->role === 'shop_gest' && $produit->id_shop !== $currentUser->id_shop)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Produit introuvable ou non autorisé.',
@@ -192,7 +208,20 @@ class ProduitController extends Controller
         }
     
         $validated = $request->validate([
-            'nom' => 'nullable|string|max:255',
+            'nom' => [
+                'nullable',
+                'string',
+                'max:255',
+                function ($attribute, $value, $fail) use ($request, $produit) {
+                    $exists = Produit::where('nom', $value)
+                        ->where('id_shop', $request->id_shop ?? $produit->id_shop)
+                        ->where('id_produit', '!=', $produit->id_produit)
+                        ->exists();
+                    if ($exists) {
+                        $fail('Ce Produit existe déjà pour ce magasin.');
+                    }
+                },
+            ],
             'id_categorie' => 'nullable|exists:categories,id',
             'prix_ifc' => 'nullable|numeric|min:0',
             'prix_shop' => 'nullable|numeric|min:0',
@@ -222,6 +251,7 @@ class ProduitController extends Controller
         ], 200);
     }
     
+    
     /**
      * Suppression d'un produit.
      */
@@ -238,13 +268,19 @@ class ProduitController extends Controller
 
         $produit = Produit::find($id);
 
-        if (!$produit || ($currentUser->role === 'shop_gest' && $produit->id_shop !== $currentUser->id_user)) {
+        // if (!$produit || ($currentUser->role === 'shop_gest' && $produit->id_shop !== $currentUser->id_user)) {
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => 'Produit introuvable ou non autorisé.',
+        //     ], 403);
+        // }
+
+        if (!$produit || ($currentUser->role === 'shop_gest' && $produit->id_shop !== $currentUser->id_shop)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Produit introuvable ou non autorisé.',
             ], 403);
         }
-
         if ($currentUser->role === 'caissiere') {
             return response()->json([
                 'status' => 'error',

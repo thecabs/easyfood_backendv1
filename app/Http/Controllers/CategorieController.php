@@ -190,6 +190,7 @@ class CategorieController extends Controller
         $categorie->delete();
 
         return response()->json([
+            'data' => $categorie,
             'status' => 'success',
             'message' => 'Catégorie supprimée avec succès.',
         ], 200);
