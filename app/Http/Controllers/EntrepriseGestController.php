@@ -187,7 +187,7 @@ class EntrepriseGestController extends Controller
         $currentUser = Auth::user();
     
         // Vérification des autorisations de l'utilisateur actuel
-        if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest', 'admin'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
     
@@ -249,7 +249,7 @@ class EntrepriseGestController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Profil mis à jour avec succès.',
-                'user' => [
+                'data' => [
                     'id_user' => $userToUpdate->id_user,
                     'nom' => $userToUpdate->nom,
                     'email' => $userToUpdate->email,
