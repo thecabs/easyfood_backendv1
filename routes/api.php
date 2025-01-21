@@ -305,7 +305,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 
 Route::middleware('auth:sanctum')->group(function () {
-<<<<<<< HEAD
     // Route::get('/stocks/', [StockController::class, 'index']); // Liste des stocks
     // Route::get('/stocks/{id}', [StockController::class, 'show']); // Afficher un stock
     // Route::post('/stocks/add', [StockController::class, 'store']); // Créer un stock avec l'idshop correspondant
@@ -315,15 +314,6 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::put('/stocks/update/', [StockController::class, 'update']); // Liste des stocks
 
  
-=======
-    Route::prefix('stocks')->group(function () {
-        Route::get('/', [StockController::class, 'index']); // Liste des stocks
-        Route::get('/{id}', [StockController::class, 'show']); // Afficher un stock
-        Route::post('/add', [StockController::class, 'store']); // Créer un stock avec l'idshop correspondant
-        Route::put('/update/{id}', [StockController::class, 'update']); // Mettre à jour un stock
-        Route::delete('/delete/{id}', [StockController::class, 'destroy']); // Supprimer un stock
-    });
->>>>>>> 68f4e65da56b87ebad0012d1924210e3c0a9d92e
 });
 
 // logs sur le stocks

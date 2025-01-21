@@ -11,155 +11,77 @@ use Illuminate\Support\Facades\Auth;
 class TransactionController extends Controller
 {
     /**
-     * Effectuer une transaction (crédit ou débit).
+     * Effectuer un transfert entre deux comptes.
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request)
+    public function transfer(Request $request)
     {
-        // Validation des données
-        $validatedData = $request->validate([
-            'numero_compte' => 'required|exists:comptes,numero_compte',
+        // Validation des données de la requête
+        $validated = $request->validate([
+            'numero_compte_src' => 'required|exists:comptes,numero_compte',
+            'numero_compte_dest' => 'required|exists:comptes,numero_compte|different:numero_compte_src',
             'montant' => 'required|numeric|min:0.01',
-            'type' => 'required|in:credit,debit',
         ]);
 
-        // Vérification des rôles en fonction du type de transaction
         $currentUser = Auth::user();
-        if (
-            ($validatedData['type'] === 'credit' && !in_array($currentUser->role, ['admin', 'superadmin', 'entreprise_gest'])) ||
-            ($validatedData['type'] === 'debit' && $currentUser->role !== 'caissiere_gest')
-        ) {
-            return response()->json(['message' => 'Vous n\'avez pas l\'autorisation pour effectuer cette transaction.'], 403);
+
+        // Vérification des autorisations
+        if (!in_array($currentUser->role, ['admin', 'superadmin', 'entreprise_gest'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vous n\'êtes pas autorisé à effectuer ce transfert.',
+            ], 403);
         }
 
         DB::beginTransaction();
 
         try {
-            // Récupérer le compte associé
-            $compte = Compte::where('numero_compte', $validatedData['numero_compte'])->firstOrFail();
+            // Récupérer les comptes source et destination
+            $compteSrc = Compte::where('numero_compte', $validated['numero_compte_src'])->firstOrFail();
+            $compteDest = Compte::where('numero_compte', $validated['numero_compte_dest'])->firstOrFail();
 
-            // Gestion du débit
-            if ($validatedData['type'] === 'debit') {
-                if ($compte->solde < $validatedData['montant']) {
-                    return response()->json([
-                        'message' => 'Fonds insuffisants pour effectuer ce retrait.',
-                    ], 400);
-                }
-
-                // Déduire le montant du solde du compte
-                $compte->solde -= $validatedData['montant'];
+            // Vérifier que le compte source a suffisamment de fonds
+            if ($compteSrc->solde < $validated['montant']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Solde insuffisant sur le compte source.',
+                ], 400);
             }
 
-            // Gestion du crédit
-            if ($validatedData['type'] === 'credit') {
-                $compte->solde += $validatedData['montant'];
-            }
+            // Déduire le montant du compte source
+            $compteSrc->solde -= $validated['montant'];
+            $compteSrc->save();
 
-            // Enregistrer le nouveau solde du compte
-            $compte->save();
+            // Ajouter le montant au compte destination
+            $compteDest->solde += $validated['montant'];
+            $compteDest->save();
 
-            // Créer un enregistrement pour la transaction
+            // Enregistrer la transaction
             $transaction = Transaction::create([
-                'numero_compte' => $validatedData['numero_compte'],
-                'montant' => $validatedData['montant'],
-                'type' => $validatedData['type'],
+                'numero_compte_src' => $validated['numero_compte_src'],
+                'numero_compte_dest' => $validated['numero_compte_dest'],
+                'montant' => $validated['montant'],
+                'type' => 'transfert',
                 'date' => now(),
             ]);
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Transaction effectuée avec succès.',
+                'status' => 'success',
+                'message' => 'Transfert effectué avec succès.',
                 'transaction' => $transaction,
             ], 201);
         } catch (\Exception $e) {
-            // Annuler les modifications en cas d'erreur
             DB::rollBack();
 
             return response()->json([
-                'message' => 'Une erreur est survenue lors du traitement de la transaction.',
+                'status' => 'error',
+                'message' => 'Une erreur est survenue lors du transfert.',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
-
-    public function effectuerTransaction(Request $request)
-{
-    // Validation des données
-    $validated = $request->validate([
-        'numero_compte_gestionnaire' => 'required|exists:comptes,numero_compte',
-        'numero_compte_employe' => 'required|exists:comptes,numero_compte',
-        'montant' => 'required|numeric|min:0.01',
-    ], [
-        'numero_compte_gestionnaire.exists' => 'Le compte gestionnaire spécifié n\'existe pas.',
-        'numero_compte_employe.exists' => 'Le compte employé spécifié n\'existe pas.',
-        'montant.min' => 'Le montant doit être supérieur à zéro.',
-    ]);
-
-    DB::beginTransaction();
-
-    try {
-        // Récupérer les comptes
-        $compteGestionnaire = Compte::where('numero_compte', $validated['numero_compte_gestionnaire'])->first();
-        $compteEmploye = Compte::where('numero_compte', $validated['numero_compte_employe'])->first();
-
-        // Vérifier que le gestionnaire a suffisamment de fonds
-        if ($compteGestionnaire->solde < $validated['montant']) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Solde insuffisant sur le compte du gestionnaire.',
-            ], 400);
-        }
-
-        // Effectuer la transaction
-        $montant = $validated['montant'];
-
-        $compteGestionnaire->solde -= $montant;
-        $compteGestionnaire->save();
-
-        $compteEmploye->solde += $montant;
-        $compteEmploye->save();
-
-        // Enregistrer la transaction
-        $transaction = Transaction::create([
-            'numero_compte' => $validated['numero_compte_gestionnaire'],
-            'montant' => $montant,
-            'date' => now(),
-            'type' => 'debit',
-        ]);
-
-        Transaction::create([
-            'numero_compte' => $validated['numero_compte_employe'],
-            'montant' => $montant,
-            'date' => now(),
-            'type' => 'credit',
-        ]);
-
-        DB::commit();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Transaction effectuée avec succès.',
-            'transaction' => [
-                'gestionnaire' => $transaction,
-                'employe' => [
-                    'numero_compte' => $compteEmploye->numero_compte,
-                    'nouveau_solde' => $compteEmploye->solde,
-                ],
-            ],
-        ], 200);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Une erreur est survenue lors de la transaction.',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-}
-
 }

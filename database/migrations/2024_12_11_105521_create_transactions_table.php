@@ -9,15 +9,15 @@ class CreateTransactionsTable extends Migration
     public function up()
     {
         Schema::create('transactions', function (Blueprint $table) {
-            $table->id(); // Utilisation d'un ID auto-incrémenté standard pour numero_transaction
+            $table->id();
             $table->string('numero_compte_src')->nullable();
-            $table->string('numero_compte_dest')->nullable(); // numero_compte est une chaîne
+            $table->string('numero_compte_dest')->nullable();
             $table->decimal('montant', 15, 2);
             $table->dateTime('date');
-            $table->enum('type', ['credit', 'debit']);
+            $table->enum('type', ['credit', 'debit', 'transfert']);
             $table->timestamps();
 
-            // Définir la clé étrangère sur numero_compte
+            // Relations
             $table->foreign('numero_compte_src')
                 ->references('numero_compte')
                 ->on('comptes')
