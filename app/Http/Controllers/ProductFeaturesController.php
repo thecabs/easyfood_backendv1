@@ -167,6 +167,8 @@ class ProductFeaturesController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Image supprimée avec succès.',
+            'data'=> $image
+
         ], 200);
     }
 }

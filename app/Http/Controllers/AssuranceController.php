@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\DB;
         // Récupération des assurances avec leurs entreprises et gestionnaires
         $assurances = Assurance::with([
             'entreprises',
-            'gestionnaire:id_user,nom,photo_profil,tel'
+            'gestionnaire:id_user,nom,photo_profil,tel,email'
         ])->get();
     
         // Pagination manuelle

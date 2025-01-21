@@ -25,7 +25,7 @@ class EntrepriseController extends Controller
     // Récupérer toutes les entreprises avec leurs assurances et gestionnaires
     $entreprises = Entreprise::with([
         'assurance:id_assurance,libelle,logo',
-        'gestionnaire:id_user,nom,photo_profil,tel'
+        'gestionnaire:id_user,nom,photo_profil,tel,email'
     ])->get();
 
     // Pagination manuelle

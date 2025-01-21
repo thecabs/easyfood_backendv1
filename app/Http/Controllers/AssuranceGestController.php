@@ -165,7 +165,7 @@ public function updateProfile(Request $request, $id_user)
     $currentUser = Auth::user();
 
     // Vérifier si l'utilisateur actuel a les droits nécessaires
-    if (!in_array($currentUser->role, ['superadmin', 'assurance_gest'])) {
+    if (!in_array($currentUser->role, ['superadmin', 'assurance_gest','admin'])) {
         return response()->json([
             'status' => 'error',
             'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -234,7 +234,7 @@ public function updateProfile(Request $request, $id_user)
         return response()->json([
             'status' => 'success',
             'message' => 'Profil mis à jour avec succès.',
-            'user' => [
+            'data' => [
                 'id_user' => $userToUpdate->id_user,
                 'nom' => $userToUpdate->nom,
                 'email' => $userToUpdate->email,
