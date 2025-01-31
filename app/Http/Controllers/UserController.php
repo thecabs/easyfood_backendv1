@@ -91,7 +91,6 @@ class UserController extends Controller
         }
     }
 
-
     public function destroy($id)
 {
     $currentUser = Auth::user();

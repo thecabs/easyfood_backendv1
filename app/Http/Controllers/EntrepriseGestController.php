@@ -149,11 +149,12 @@ class EntrepriseGestController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Gestionnaire créé avec succès. Les informations de connexion et du compte bancaire ont été envoyées.',
-            'user' => [
+            'data' => [
                 'id_user' => $user->id_user,
                 'nom' => $user->nom,
                 'email' => $user->email,
                 'role' => $user->role,
+                'tel'=>$user->tel,
                 'statut' => $user->statut,
                 'photo_profil' => $user->photo_profil,
             ],
