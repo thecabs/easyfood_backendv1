@@ -42,7 +42,7 @@ class ProduitController extends Controller
             return [
                 'id_produit' => $produit->id_produit,
                 'nom' => $produit->nom,
-                'categorie' => $produit->categorie->libelle ?? null,
+                'categorie' => $produit->categorie,
                 'prix_ifc' => $produit->prix_ifc,
                 'prix_shop' => $produit->prix_shop,
                 'statut' => $produit->statut,
