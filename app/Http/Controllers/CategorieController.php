@@ -52,7 +52,7 @@ class CategorieController extends Controller
             ], 403);
         }
 
-        $validated = $request->validate([
+        $validated = $request->validate([ 
             'libelle' => 'required|string|unique:categories,libelle|max:255',
             'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);

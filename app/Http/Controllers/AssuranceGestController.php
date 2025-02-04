@@ -135,9 +135,10 @@ public function register(Request $request)
         return response()->json([
             'status' => 'success',
             'message' => 'Utilisateur créé avec succès. Les informations de connexion ont été envoyées par email.',
-            'user' => [
+            'data' => [
                 'id_user' => $user->id_user,
                 'nom' => $user->nom,
+                'tel'=>$user->tel,
                 'email' => $user->email,
                 'role' => $user->role,
                 'statut' => $user->statut,

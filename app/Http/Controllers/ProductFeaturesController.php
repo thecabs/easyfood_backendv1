@@ -17,7 +17,7 @@ class ProductFeaturesController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des rôles
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -34,7 +34,7 @@ class ProductFeaturesController extends Controller
         }
 
         // Si l'utilisateur n'est pas superadmin, vérifier qu'il gère le shop du produit
-        if ($currentUser->role !== 'superadmin') {
+        if ($currentUser->role !== 'superadmin' && $currentUser->role !== 'admin') {
             $shop = $produit->shop; // Relation à ajouter dans le modèle Produit
             if (!$shop || $shop->id_gestionnaire !== $currentUser->id_user) {
                 return response()->json([
@@ -127,7 +127,7 @@ class ProductFeaturesController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des rôles
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -152,7 +152,7 @@ class ProductFeaturesController extends Controller
             ], 404);
         }
 
-        if ($currentUser->role !== 'superadmin') {
+        if ($currentUser->role !== 'superadmin'  && $currentUser->role !== 'admin') {
             $shop = $produit->shop; // Relation à ajouter dans le modèle Produit
             if (!$shop || $shop->id_gestionnaire !== $currentUser->id_user) {
                 return response()->json([
