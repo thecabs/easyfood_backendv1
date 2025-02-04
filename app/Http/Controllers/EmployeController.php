@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Compte;
+use App\Models\Transaction;
+use App\Models\Entreprise;
 use App\Models\Otp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -31,6 +33,7 @@ class EmployeController extends Controller
             'password' => 'required|min:8',
             'nom' => 'required|string|max:255',
             'id_entreprise' => 'required|exists:entreprises,id_entreprise',
+            'tel' => 'required|string|max:15',  
             'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
         ]);
     
@@ -46,9 +49,9 @@ class EmployeController extends Controller
                 'password' => Hash::make($request->password),
                 'nom' => $request->nom,
                 'id_entreprise' => $request->id_entreprise,
+                'tel' => $request->tel,  
                 'role' => 'employe',
             ];
-            
     
             if ($request->hasFile('photo_profil')) {
                 $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
@@ -84,6 +87,7 @@ class EmployeController extends Controller
             ], 500);
         }
     }
+    
     
     // Méthode pour nettoyer les utilisateurs avec OTP expiré
     public function cleanExpiredUsers()
@@ -366,4 +370,53 @@ class EmployeController extends Controller
     {
         return in_array($user->role, ['superadmin', 'entreprise_gest']);
     }
+
+   
+ 
+    public function getEmployeInfo($id_user)
+{
+    // Vérifier l'authentification
+    $user = Auth::user();
+    
+    if (!$user || $user->role !== 'employe') {
+        return response()->json(['error' => 'Accès refusé'], 403);
+    }
+
+    // Vérifier si l'ID utilisateur est valide
+    if (!$id_user || !is_numeric($id_user)) {
+        return response()->json(['error' => 'ID utilisateur invalide'], 400);
+    }
+
+    // Récupérer les informations du compte de l'utilisateur
+    $compte = Compte::where('id_user', $id_user)->first();
+    if (!$compte) {
+        return response()->json(['error' => 'Compte non trouvé'], 404);
+    }
+
+    // Calculer le total des crédits et débits
+    $credits_total = Transaction::where('numero_compte_dest', $compte->numero_compte)
+        ->where('type', 'credit')
+        ->sum('montant');
+
+    $debits_total = Transaction::where('numero_compte_src', $compte->numero_compte)
+        ->where('type', 'debit')
+        ->sum('montant');
+
+    // Récupérer le nom de l'entreprise associée à l'utilisateur
+    $entreprise = Entreprise::where('id_entreprise', $user->id_entreprise)->first();
+
+    return response()->json([
+        'nom' => $user->nom,
+        'email' => $user->email,
+        'numero_compte' => $compte->numero_compte,
+        'solde' => $compte->solde,
+        'date_creation' => $compte->date_creation,
+        'credits_total' => $credits_total,
+        'debits_total' => $debits_total,
+        'entreprise' => $entreprise ? $entreprise->nom : 'Non assignée',
+        'entreprise_id' => $entreprise ? $entreprise->id_entreprise: 'Non assignée'
+
+    ]);
+}
+
 }

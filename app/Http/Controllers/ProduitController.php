@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\Auth;
 
 class ProduitController extends Controller
 {
-      /**
+    /**
      * Liste des produits.
      */
     public function index(Request $request)
     {
         $currentUser = Auth::user();
-    
+
         // Vérification des permissions
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
             return response()->json([
@@ -24,19 +24,19 @@ class ProduitController extends Controller
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-    
+
         // Construction de la requête des produits
         $produitsQuery = Produit::with(['categorie', 'partenaire', 'stock', 'images']);
-    
+
         if (in_array($currentUser->role, ['shop_gest', 'caissiere'])) {
             // Limiter les produits au shop de l'utilisateur
             $produitsQuery->where('id_shop', $currentUser->id_shop); // Assurez-vous que 'id_shop' est correct
         }
-    
+
         // Pagination des résultats
         $perPage = $request->input('per_page', 10);
         $produits = $produitsQuery->paginate($perPage);
-    
+
         // Formatage des données produits
         $formattedProduits = $produits->getCollection()->transform(function ($produit) {
             return [
@@ -58,7 +58,7 @@ class ProduitController extends Controller
                 'photos' => $produit->images,
             ];
         });
-    
+
         // Retour de la réponse paginée
         return response()->json([
             'status' => 'success',
@@ -71,70 +71,70 @@ class ProduitController extends Controller
             ],
         ], 200);
     }
-    
+
 
     /**
      * Affiche un produit spécifique.
      */
     public function show($id)
-{
-    $currentUser = Auth::user();
+    {
+        $currentUser = Auth::user();
 
-    // Vérification des autorisations
-    if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
+        // Vérification des autorisations
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+            ], 403);
+        }
+
+        // Charger les relations nécessaires
+        $produit = Produit::with(['categorie.shop', 'partenaire', 'stock', 'images'])->find($id);
+
+        // Vérification si le produit existe
+        if (!$produit) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Produit introuvable.',
+            ], 404);
+        }
+
+        // Construire la réponse JSON
         return response()->json([
-            'status' => 'error',
-            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-        ], 403);
+            'status' => 'success',
+            'data' => [
+                'id_produit' => $produit->id_produit,
+                'nom' => $produit->nom,
+                'categorie' => [
+                    'id_categorie' => $produit->categorie->id ?? null,
+                    'libelle' => $produit->categorie->libelle ?? null,
+                ],
+                'prix_ifc' => $produit->prix_ifc,
+                'prix_shop' => $produit->prix_shop,
+                'statut' => $produit->statut,
+                'code_barre' => $produit->code_barre,
+                'quantite_disponible' => $produit->stock->quantite ?? 0,
+                'photos' => $produit->images->map(function ($image) {
+                    return $image;
+                }),
+                'shop' => [
+                    'nom' => $produit->partenaire->nom ?? null,
+                    'logo' => $produit->partenaire->logo ?? null,
+                ],
+                'categorie'
+            ],
+        ], 200);
     }
 
-    // Charger les relations nécessaires
-    $produit = Produit::with(['categorie.shop', 'partenaire', 'stock', 'images'])->find($id);
-
-    // Vérification si le produit existe
-    if (!$produit) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Produit introuvable.',
-        ], 404);
-    }
-
-    // Construire la réponse JSON
-    return response()->json([
-        'status' => 'success',
-        'data' => [
-            'id_produit' => $produit->id_produit,
-            'nom' => $produit->nom,
-            'categorie' => [
-                'id_categorie' => $produit->categorie->id ?? null,
-                'libelle' => $produit->categorie->libelle ?? null,
-            ],
-            'prix_ifc' => $produit->prix_ifc,
-            'prix_shop' => $produit->prix_shop,
-            'statut' => $produit->statut,
-            'code_barre' => $produit->code_barre,
-            'quantite_disponible' => $produit->stock->quantite ?? 0,
-            'photos' => $produit->images->map(function ($image) {
-                return $image;
-            }),
-            'shop' => [
-                'nom' => $produit->partenaire->nom ?? null,
-                'logo' => $produit->partenaire->logo ?? null,
-            ],
-            'categorie' 
-        ],
-    ], 200);
-}
 
 
-    
     /**
      * Création d'un produit.
      */
     public function store(Request $request)
     {
         $currentUser = Auth::user();
-    
+
         // Vérification des rôles autorisés
         if (!in_array($currentUser->role, ['superadmin', 'admin', 'shop_gest'])) {
             return response()->json([
@@ -142,7 +142,7 @@ class ProduitController extends Controller
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-    
+
         // Validation des données entrantes
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
@@ -165,17 +165,17 @@ class ProduitController extends Controller
                 },
             ],
         ]);
-    
+
         // Création du produit
         $produit = Produit::create($validated);
-    
+
         // Création du stock associé avec une quantité initiale de zéro
         $stock = Stock::create([
             'id_produit' => $produit->id_produit,
             'quantite' => 0, // Quantité initiale nulle
             'id_shop' => $validated['id_shop'],
         ]);
-    
+
         return response()->json([
             'status' => 'success',
             'message' => 'Produit et stock créés avec succès.',
@@ -185,28 +185,28 @@ class ProduitController extends Controller
             ],
         ], 201);
     }
-    
-    
+
+
     public function update(Request $request, $id)
     {
         $currentUser = Auth::user();
-    
+
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-    
+
         $produit = Produit::find($id);
-    
+
         if (!$produit || ($currentUser->role === 'shop_gest' && $produit->id_shop !== $currentUser->id_shop)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Produit introuvable ou non autorisé.',
             ], 403);
         }
-    
+
         $validated = $request->validate([
             'nom' => [
                 'nullable',
@@ -241,17 +241,17 @@ class ProduitController extends Controller
                 },
             ],
         ]);
-    
+
         $produit->update($validated);
-    
+
         return response()->json([
             'status' => 'success',
             'message' => 'Produit mis à jour avec succès.',
             'data' => $produit,
         ], 200);
     }
-    
-    
+
+
     /**
      * Suppression d'un produit.
      */
@@ -259,7 +259,7 @@ class ProduitController extends Controller
     {
         $currentUser = Auth::user();
 
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',

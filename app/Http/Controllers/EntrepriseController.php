@@ -9,6 +9,50 @@ use Illuminate\Support\Facades\Storage;
 
 class EntrepriseController extends Controller
 {
+     /**
+     * Rechercher les entreprises.
+     */
+
+
+    public function search(Request $request)
+    {
+        $validated = $request->validate([
+            'nom' => 'nullable|string|max:255',
+            'secteur_activite' => 'nullable|string|max:255',
+            'ville' => 'nullable|string|max:255',
+            'quartier' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $query = Entreprise::query();
+
+            if (!empty($validated['nom'])) {
+                $query->where('nom', 'like', '%' . $validated['nom'] . '%');
+            }
+            if (!empty($validated['secteur_activite'])) {
+                $query->where('secteur_activite', 'like', '%' . $validated['secteur_activite'] . '%');
+            }
+            if (!empty($validated['ville'])) {
+                $query->where('ville', 'like', '%' . $validated['ville'] . '%');
+            }
+            if (!empty($validated['quartier'])) {
+                $query->where('quartier', 'like', '%' . $validated['quartier'] . '%');
+            }
+
+            $entreprises = $query->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $entreprises,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors de la recherche des entreprises.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
     /**
      * Liste toutes les entreprises avec leurs assurances associées.
      */

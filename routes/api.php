@@ -22,6 +22,7 @@ use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PartenaireShopGestController;
 use App\Http\Controllers\AssuranceGestController;
+use App\Http\Controllers\DemandeController;
 use App\Http\Controllers\EntrepriseGestController;
 
 /*
@@ -159,14 +160,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
  Route::prefix('employe')->group(function () {
     Route::post('/register', [EmployeController::class, 'register']);
     Route::post('/validate-otp', [EmployeController::class, 'validateOtp']);
-   
-});
- 
+    Route::post('/entreprises/recherche', [EntrepriseController::class, 'search']);
+
+ });
+
+
+
 Route::middleware(['auth:sanctum'])->group(function () {
 
     // Mettre à jour un employé
-    Route::put('/employes', [EmployeController::class, 'update']);
+    //Route::put('/employes', [EmployeController::class, 'update']);
     Route::post('/employes', [EmployeController::class, 'update']);
+    Route::get('/employe/info/{id}', [EmployeController::class, 'getEmployeInfo']);
+
+//Route::middleware('auth:sanctum')->get('/employe/info', [EmployeController::class, 'getEmployeInfo']);
+
    });
 
 
@@ -183,6 +191,14 @@ Route::post('/compte/{numeroCompte}/update-pin', [CompteController::class, 'upda
    });
 
 
+//les demandes de fonds
+
+ 
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/demande/fonds', [DemandeController::class, 'store']);
+    Route::get('/demandes', [DemandeController::class, 'index']);         // ✅ Lister les demandes
+    Route::put('/demande/{id}/valider', [DemandeController::class, 'valider']); // ✅ Valider une demande
+});
 
 //les transactions pour les comptes
 
@@ -353,3 +369,4 @@ Route::middleware('auth:sanctum')->post('/users/search-by-role', [UserController
 
  
 
+     
