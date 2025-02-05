@@ -182,6 +182,11 @@ Route::get('/shop-ls', [PartenaireShopController::class, 'listShopsSimple']);
 
 Route::get('/employe/recherche', [ProduitController::class, 'rechercherProduit']);
 
+//historique 
+
+
+ 
+Route::get('/employe/historique/{id_user}', [EmployeController::class, 'getHistorique']);
 
    });
 

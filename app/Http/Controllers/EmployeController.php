@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Compte;
+use App\Models\Demande;
 use App\Models\Transaction;
+use App\Models\LigneFacture;
 use App\Models\Entreprise;
 use App\Models\Otp;
 use Illuminate\Http\Request;
@@ -418,5 +420,56 @@ class EmployeController extends Controller
 
     ]);
 }
+
+public function getHistorique($id_user)
+{
+    // Vérification de l'authentification
+    $user = Auth::user();
+    
+    if (!in_array($user->role, ['superadmin','employe'])) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
+        ], 403);
+    }
+    // Vérifier si l'utilisateur a un compte
+    $compte = Compte::where('id_user', $id_user)->first();
+    if (!$compte) {
+        return response()->json(['error' => 'Compte non trouvé'], 404);
+    }
+
+    // Total des dépenses (Débits)
+    $total_depenses = Transaction::where('numero_compte_src', $compte->numero_compte)
+        ->where('type', 'debit')
+        ->sum('montant');
+
+    // Récupération des achats
+    $achats = LigneFacture::join('factures', 'lignes_factures.id_facture', '=', 'factures.id_facture')
+        ->join('produits', 'lignes_factures.id_produit', '=', 'produits.id_produit')
+        ->where('factures.id_client', $id_user)
+        ->select('factures.date_facturation', 'produits.nom', 'produits.prix_shop')
+        ->get();
+
+    // Liste des transactions (Crédits & Débits)
+    $transactions = Transaction::where(function ($query) use ($compte) {
+            $query->where('numero_compte_src', $compte->numero_compte)
+                  ->orWhere('numero_compte_dest', $compte->numero_compte);
+        })
+        ->select('type', 'montant', 'created_at as date')
+        ->get();
+
+    // Liste des demandes de crédit
+    $demandes_credit = Demande::where('id_user', $id_user)
+        ->select('montant', 'statut', 'created_at as date')
+        ->get();
+
+    return response()->json([
+        'total_depenses' => $total_depenses,
+        'achats' => $achats,
+        'transactions' => $transactions,
+        'demandes_credit' => $demandes_credit
+    ]);
+}
+
 
 }

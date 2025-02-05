@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,6 +8,7 @@ class LigneFacture extends Model
 {
     use HasFactory;
 
+    protected $table = 'lignes_factures'; // <-- Ajouté pour éviter l'erreur de table non trouvée
     protected $primaryKey = 'id_ligne_facture';
 
     protected $fillable = ['id_facture', 'id_produit', 'quantite'];
