@@ -24,6 +24,7 @@ use App\Http\Controllers\PartenaireShopGestController;
 use App\Http\Controllers\AssuranceGestController;
 use App\Http\Controllers\DemandeController;
 use App\Http\Controllers\EntrepriseGestController;
+use App\Models\PartenaireShop;
 
 /*
 |--------------------------------------------------------------------------
@@ -173,7 +174,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/employes', [EmployeController::class, 'update']);
     Route::get('/employe/info/{id}', [EmployeController::class, 'getEmployeInfo']);
 
-//Route::middleware('auth:sanctum')->get('/employe/info', [EmployeController::class, 'getEmployeInfo']);
+ 
+
+// lister les entreprises 
+
+Route::get('/shop-ls', [PartenaireShopController::class, 'listShopsSimple']);
+
+Route::get('/employe/recherche', [ProduitController::class, 'rechercherProduit']);
+
 
    });
 
@@ -309,6 +317,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/{id}', [ProduitController::class, 'show']); // Afficher un produit spécifique
         Route::put('update/{id}', [ProduitController::class, 'update']); // Mettre à jour un produit
         Route::delete('/{id}', [ProduitController::class, 'destroy']); // Supprimer un produit
+       
+       //nouvelle route
+
+
     });
     
     

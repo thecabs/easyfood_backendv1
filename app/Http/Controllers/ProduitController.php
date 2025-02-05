@@ -10,6 +10,68 @@ use Illuminate\Support\Facades\Auth;
 
 class ProduitController extends Controller
 {
+    // RECHERCHER PRODUIT POUR L'employé
+    public function rechercherProduit(Request $request)
+    {
+        $currentUser = Auth::user();
+
+        // Vérification des autorisations
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere','employe'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+            ], 403);
+        }
+
+        // Validation des paramètres de la requête
+        $request->validate([
+            'id_shop'    => 'required|integer',
+            'code_barre' => 'required|string',
+        ]);
+
+        // Recherche du produit
+        $produit = Produit::with(['categorie', 'partenaire', 'stock', 'images'])
+            ->where('code_barre', $request->code_barre)
+            ->whereHas('categorie.shop', function ($query) use ($request) {
+                $query->where('id', $request->id_shop);
+            })
+            ->first();
+
+        if (!$produit) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Produit introuvable pour ce magasin.',
+            ], 404);
+        }
+
+        // Construction de la réponse JSON
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'id_produit'          => $produit->id_produit,
+                'nom'                 => $produit->nom,
+                'categorie'           => [
+                    'id_categorie' => $produit->categorie->id ?? null,
+                    'libelle'      => $produit->categorie->libelle ?? null,
+                ],
+                'prix_ifc'            => $produit->prix_ifc,
+                'prix_shop'           => $produit->prix_shop,
+                'statut'              => $produit->statut,
+                'code_barre'          => $produit->code_barre,
+                'quantite_disponible' => $produit->stock->quantite ?? 0,
+                'photos'              => $produit->images->map(function ($image) {
+                    return [
+                        'url' => $image->url,
+                        'alt' => $image->alt ?? '',
+                    ];
+                }),
+                'shop' => [
+                    'nom'  => $produit->partenaire->nom ?? null,
+                    'logo' => $produit->partenaire->logo ?? null,
+                ],
+            ],
+        ], 200);
+    }
     /**
      * Liste des produits.
      */
