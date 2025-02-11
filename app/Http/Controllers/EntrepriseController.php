@@ -12,39 +12,8 @@ class EntrepriseController extends Controller
 
 
 
- /**
- * Liste toutes les entreprises sans assurances ni gestionnaires.
- */
-public function listCompaniesSimple(Request $request)
-{
-    $user = Auth::user();
+ 
 
-    if (!in_array($user->role, ['superadmin', 'employe'])) {
-        return response()->json([
-            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
-        ], 403);
-    }
-
-    // Récupérer toutes les entreprises sans relations supplémentaires.
-    $entreprises = Entreprise::all();
-
-    // Pagination manuelle
-    $perPage = $request->input('per_page', 10);
-    $currentPage = $request->input('page', 1);
-    $paginated = $entreprises->slice(($currentPage - 1) * $perPage, $perPage)->values();
-
-    // Construire la réponse paginée
-    return response()->json([
-        'status' => 'success',
-        'data' => $paginated,
-        'pagination' => [
-            'total' => $entreprises->count(),
-            'per_page' => $perPage,
-            'current_page' => $currentPage,
-            'last_page' => ceil($entreprises->count() / $perPage),
-        ],
-    ], 200);
-}
 
 
      /**

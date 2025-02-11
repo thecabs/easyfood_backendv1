@@ -219,8 +219,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware(['auth:sanctum'])->group(function () {
 
 
-Route::post('/transactions', [TransactionController::class, 'store']);
-Route::post('/depot', [TransactionController::class, 'effectuerTransaction']);
+Route::post('/transactions', [TransactionController::class, 'operation']);
+//Route::post('/depot', [TransactionController::class, 'effectuerTransaction']);
 
 
 });

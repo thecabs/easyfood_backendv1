@@ -9,12 +9,31 @@ class Transaction extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'numero_transaction';
+    protected $table = 'transactions'; // S'assurer que le nom de la table est correct
 
-    protected $fillable = ['numero_compte', 'montant', 'date', 'type'];
+    protected $primaryKey = 'id'; // Correspondance avec la migration
 
-    public function compte()
+    protected $fillable = [
+        'numero_compte_src',
+        'numero_compte_dest',
+        'montant',
+        'date',
+        'type',
+    ];
+
+    /**
+     * Relation avec le compte source.
+     */
+    public function compteSource()
     {
-        return $this->belongsTo(Compte::class, 'numero_compte');
+        return $this->belongsTo(Compte::class, 'numero_compte_src', 'numero_compte');
+    }
+
+    /**
+     * Relation avec le compte destination.
+     */
+    public function compteDestination()
+    {
+        return $this->belongsTo(Compte::class, 'numero_compte_dest', 'numero_compte');
     }
 }
