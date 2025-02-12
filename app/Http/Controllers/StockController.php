@@ -103,6 +103,65 @@ class StockController extends Controller
         ], 200);
     }
 
+    public function index(Request $request)
+{
+    $currentUser = Auth::user();
+
+    // Définir les rôles autorisés pour consulter les stocks
+    $allowedRoles = ['superadmin', 'shop_gest', 'admin', 'caissiere'];
+
+    if (!in_array($currentUser->role, $allowedRoles)) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
+        ], 403);
+    }
+
+    // Préparer la requête de base sur le modèle Stock
+    $stocksQuery = Stock::query();
+
+    // Si l'utilisateur n'est pas superadmin, limiter l'accès aux stocks
+    if ($currentUser->role !== 'superadmin') {
+        if ($currentUser->role === 'shop_gest') {
+            // Pour un gestionnaire de magasin, on récupère tous les magasins qu'il gère
+            $shopIds = \App\Models\PartenaireShop::where('id_gestionnaire', $currentUser->id_user)
+                         ->pluck('id_shop');
+            $stocksQuery->whereIn('id_shop', $shopIds);
+        } elseif ($currentUser->role === 'caissiere') {
+            // Pour une caissière, on suppose que le magasin auquel elle est associée est stocké dans une propriété (exemple : id_shop)
+            $stocksQuery->where('id_shop', $currentUser->id_shop);
+        }
+        // Vous pouvez ajouter d'autres restrictions si nécessaire pour le rôle 'admin'
+    }
+
+    // Mise en place de la pagination
+    $perPage = $request->input('per_page', 10);
+    $currentPage = $request->input('page', 1);
+
+    // Récupérer le nombre total de stocks correspondant aux critères
+    $total = $stocksQuery->count();
+
+    // Appliquer la pagination sur la requête
+    $stocks = $stocksQuery
+                ->skip(($currentPage - 1) * $perPage)
+                ->take($perPage)
+                ->get();
+
+    // Construire et retourner la réponse
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Liste des stocks récupérée avec succès.',
+        'data' => $stocks,
+        'pagination' => [
+            'total' => $total,
+            'per_page' => $perPage,
+            'current_page' => $currentPage,
+            'last_page' => ceil($total / $perPage),
+        ],
+    ], 200);
+}
+
+
     /**
      * Afficher les logs d'un stock.
      */
