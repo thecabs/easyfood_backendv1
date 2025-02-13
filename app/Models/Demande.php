@@ -8,6 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class Demande extends Model
 {
     use HasFactory;
+    public function employe()
+    {
+        return $this->belongsTo(User::class, 'id_user');
+    }
+
+    public function entreprise()
+    {
+        return $this->belongsTo(Entreprise::class, 'id_entreprise');
+    }
 
     protected $fillable = [
         'id_user',

@@ -53,7 +53,14 @@ class DemandeController extends Controller
             ], 403);
         }
 
-        $demandes = Demande::where('id_entreprise', $currentUser->id_entreprise)->get();
+        $demandes = Demande::where('id_entreprise', $currentUser->id_entreprise)->with([
+        'entreprise'=>function($query){
+            $query->select('id_entreprise','nom','adresse','ville','quartier');
+        },
+        'employe'=>function($query){
+            $query->select('id_user','nom','tel','email');
+        }
+        ])->get();
 
         return response()->json([
             'status' => 'success',
