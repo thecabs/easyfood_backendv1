@@ -13,7 +13,7 @@ class DemandeController extends Controller
     public function store(Request $request)
     {
         $currentUser = Auth::user();
-        if (!in_array($currentUser->role, ['entreprise_gest', 'employe', 'superadmin'])) {
+        if (!in_array($currentUser->role, ['entreprise_gest', 'employe', 'superadmin','admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
@@ -37,7 +37,11 @@ class DemandeController extends Controller
             'statut' => 'en attente'
         ]);
 
-        return response()->json($demande, 201);
+        return response()->json([
+            'message' => 'la demande a été envoyée',
+            'status' => 'success',
+            'data' => $demande
+        ], 201);
     }
 
     // ✅ Méthode pour lister les demandes pour le rôle 'shop_gest'
@@ -46,7 +50,7 @@ class DemandeController extends Controller
         $currentUser = Auth::user();
         
         $currentUser = Auth::user();
-        if (!in_array($currentUser->role, ['entreprise_gest','superadmin'])) {
+        if (!in_array($currentUser->role, ['entreprise_gest','superadmin','admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
@@ -77,7 +81,7 @@ class DemandeController extends Controller
         $currentUser = Auth::user();
         
         $currentUser = Auth::user();
-        if (!in_array($currentUser->role, ['entreprise_gest', 'superadmin'])) {
+        if (!in_array($currentUser->role, ['entreprise_gest', 'superadmin','admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
