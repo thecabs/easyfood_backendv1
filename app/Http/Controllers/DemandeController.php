@@ -58,7 +58,10 @@ class DemandeController extends Controller
             $query->select('id_entreprise','nom','adresse','ville','quartier');
         },
         'employe'=>function($query){
-            $query->select('id_user','nom','tel','email');
+            $query->select('id_user','nom','tel','email')->where('role','employe');
+        },
+        'gestionnaire'=>function($query){
+            $query->select('id_user','nom','tel','email')->where('role','entreprise_gest');
         }
         ])->get();
 
