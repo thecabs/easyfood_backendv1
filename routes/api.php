@@ -114,7 +114,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
      Route::get('/entreprises', [EntrepriseController::class, 'index']); // Liste des entreprises
     Route::get('/entreprises/{id}', [EntrepriseController::class, 'show']); // Affiche une entreprise spécifique
     Route::post('/entreprises', [EntrepriseController::class, 'store']); // Crée une nouvelle entreprise
-    Route::put('/entreprises/{id}', [EntrepriseController::class, 'update']); // Met à jour une entreprise
+    //Route::put('/entreprises/{id}', [EntrepriseController::class, 'update']); // Met à jour une entreprise
     Route::post('/entreprises/{id}', [EntrepriseController::class, 'update']); // Met à jour une entreprise
     Route::delete('/entreprises/{id}', [EntrepriseController::class, 'destroy']); // Supprime une entreprise
  

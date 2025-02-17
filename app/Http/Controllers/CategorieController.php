@@ -43,32 +43,35 @@ class CategorieController extends Controller
     public function store(Request $request)
     {
         $currentUser = Auth::user();
-
+    
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-
+    
         $validated = $request->validate([ 
             'libelle' => 'required|string|unique:categories,libelle|max:255',
             'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);
-
+    
         $categorie = Categorie::create([
             'libelle' => $validated['libelle'],
             'id_shop' => $currentUser->role === 'shop_gest' ? $currentUser->id_shop : $request->id_shop,
         ]);
-
+    
+        // Charger la relation shop pour renvoyer la catégorie avec son shop associé
+        $categorie->load('shop');
+    
         return response()->json([
             'status' => 'success',
             'message' => 'Catégorie créée avec succès.',
             'data' => $categorie,
         ], 201);
     }
-
+    
     /**
      * Afficher une catégorie spécifique.
      */
@@ -111,49 +114,52 @@ class CategorieController extends Controller
      * Mise à jour d'une catégorie.
      */
     public function update(Request $request, $id)
-    {
-        $currentUser = Auth::user();
+{
+    $currentUser = Auth::user();
 
-        // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
-        }
-
-        $categorie = Categorie::find($id);
-
-        if (!$categorie) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Catégorie introuvable.',
-            ], 404);
-        }
-
-        // Vérifier l'accès pour les gestionnaires de shop
-        if ($currentUser->role === 'shop_gest' && $categorie->id_shop !== $currentUser->id_shop) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Accès non autorisé à cette catégorie.',
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'libelle' => 'required|string|unique:categories,libelle,' . $id . '|max:255',
-            
-        ]);
-
-        $categorie->update([
-            'libelle' => $validated['libelle'],
-        ]);
-
+    // Vérification des permissions
+    if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
         return response()->json([
-            'status' => 'success',
-            'message' => 'Catégorie mise à jour avec succès.',
-            'data' => $categorie,
-        ], 200);
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+        ], 403);
     }
+
+    $categorie = Categorie::find($id);
+
+    if (!$categorie) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Catégorie introuvable.',
+        ], 404);
+    }
+
+    // Vérifier l'accès pour les gestionnaires de shop
+    if ($currentUser->role === 'shop_gest' && $categorie->id_shop !== $currentUser->id_shop) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Accès non autorisé à cette catégorie.',
+        ], 403);
+    }
+
+    $validated = $request->validate([
+        'libelle' => 'required|string|unique:categories,libelle,' . $id . '|max:255',
+    ]);
+
+    $categorie->update([
+        'libelle' => $validated['libelle'],
+    ]);
+
+    // Charger la relation shop après la mise à jour
+    $categorie->load('shop');
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Catégorie mise à jour avec succès.',
+        'data' => $categorie,
+    ], 200);
+}
+
 
     /**
      * Suppression d'une catégorie.

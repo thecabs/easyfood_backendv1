@@ -194,124 +194,129 @@ class ProduitController extends Controller
      * Création d'un produit.
      */
     public function store(Request $request)
-    {
-        $currentUser = Auth::user();
+{
+    $currentUser = Auth::user();
 
-        // Vérification des rôles autorisés
-        if (!in_array($currentUser->role, ['superadmin', 'admin', 'shop_gest'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
-        }
-
-        // Validation des données entrantes
-        $validated = $request->validate([
-            'nom' => 'required|string|max:255',
-            'id_categorie' => 'required|exists:categories,id',
-            'prix_ifc' => 'required|numeric|min:0',
-            'prix_shop' => 'required|numeric|min:0',
-            'id_shop' => 'required|exists:partenaire_shops,id_shop',
-            'statut' => 'required|string',
-            'code_barre' => [
-                'nullable',
-                'string',
-                'max:255',
-                function ($attribute, $value, $fail) use ($request) {
-                    $exists = Produit::where('code_barre', $value)
-                        ->where('id_shop', $request->id_shop)
-                        ->exists();
-                    if ($exists) {
-                        $fail('Le code-barre existe déjà pour ce magasin.');
-                    }
-                },
-            ],
-        ]);
-
-        // Création du produit
-        $produit = Produit::create($validated);
-
-        // Création du stock associé avec une quantité initiale de zéro
-        $stock = Stock::create([
-            'id_produit' => $produit->id_produit,
-            'quantite' => 0, // Quantité initiale nulle
-            'id_shop' => $validated['id_shop'],
-        ]);
-
+    // Vérification des rôles autorisés
+    if (!in_array($currentUser->role, ['superadmin', 'admin', 'shop_gest'])) {
         return response()->json([
-            'status' => 'success',
-            'message' => 'Produit et stock créés avec succès.',
-            'data' => [
-                'produit' => $produit,
-                'stock' => $stock,
-            ],
-        ], 201);
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+        ], 403);
     }
 
+    // Validation des données entrantes
+    $validated = $request->validate([
+        'nom' => 'required|string|max:255',
+        'id_categorie' => 'required|exists:categories,id',
+        'prix_ifc' => 'required|numeric|min:0',
+        'prix_shop' => 'required|numeric|min:0',
+        'id_shop' => 'required|exists:partenaire_shops,id_shop',
+        'statut' => 'required|string',
+        'code_barre' => [
+            'nullable',
+            'string',
+            'max:255',
+            function ($attribute, $value, $fail) use ($request) {
+                $exists = Produit::where('code_barre', $value)
+                    ->where('id_shop', $request->id_shop)
+                    ->exists();
+                if ($exists) {
+                    $fail('Le code-barre existe déjà pour ce magasin.');
+                }
+            },
+        ],
+    ]);
 
-    public function update(Request $request, $id)
-    {
-        $currentUser = Auth::user();
+    // Création du produit
+    $produit = Produit::create($validated);
 
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
-        }
+    // Création du stock associé avec une quantité initiale de zéro
+    $stock = Stock::create([
+        'id_produit' => $produit->id_produit,
+        'quantite' => 0, // Quantité initiale nulle
+        'id_shop' => $validated['id_shop'],
+    ]);
 
-        $produit = Produit::find($id);
+    // Charger les relations categorie et shop pour le produit créé
+    $produit->load('categorie', 'shop');
 
-        if (!$produit || ($currentUser->role === 'shop_gest' && $produit->id_shop !== $currentUser->id_shop)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Produit introuvable ou non autorisé.',
-            ], 403);
-        }
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Produit et stock créés avec succès.',
+        'data' => [
+            'produit' => $produit,
+            'stock' => $stock,
+        ],
+    ], 201);
+}
 
-        $validated = $request->validate([
-            'nom' => [
-                'nullable',
-                'string',
-                'max:255',
-                function ($attribute, $value, $fail) use ($request, $produit) {
-                    $exists = Produit::where('nom', $value)
-                        ->where('id_shop', $request->id_shop ?? $produit->id_shop)
-                        ->where('id_produit', '!=', $produit->id_produit)
-                        ->exists();
-                    if ($exists) {
-                        $fail('Ce Produit existe déjà pour ce magasin.');
-                    }
-                },
-            ],
-            'id_categorie' => 'nullable|exists:categories,id',
-            'prix_ifc' => 'nullable|numeric|min:0',
-            'prix_shop' => 'nullable|numeric|min:0',
-            'statut' => 'nullable|string',
-            'code_barre' => [
-                'nullable',
-                'string',
-                'max:255',
-                function ($attribute, $value, $fail) use ($request, $produit) {
-                    $exists = Produit::where('code_barre', $value)
-                        ->where('id_shop', $request->id_shop ?? $produit->id_shop)
-                        ->where('id_produit', '!=', $produit->id_produit)
-                        ->exists();
-                    if ($exists) {
-                        $fail('Ce code-barre existe déjà pour ce magasin.');
-                    }
-                },
-            ],
-        ]);
+public function update(Request $request, $id)
+{
+    $currentUser = Auth::user();
 
-        $produit->update($validated);
-
+    if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
         return response()->json([
-            'status' => 'success',
-            'message' => 'Produit mis à jour avec succès.',
-            'data' => $produit,
-        ], 200);
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+        ], 403);
     }
+
+    $produit = Produit::find($id);
+
+    if (!$produit || ($currentUser->role === 'shop_gest' && $produit->id_shop !== $currentUser->id_shop)) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Produit introuvable ou non autorisé.',
+        ], 403);
+    }
+
+    $validated = $request->validate([
+        'nom' => [
+            'nullable',
+            'string',
+            'max:255',
+            function ($attribute, $value, $fail) use ($request, $produit) {
+                $exists = Produit::where('nom', $value)
+                    ->where('id_shop', $request->id_shop ?? $produit->id_shop)
+                    ->where('id_produit', '!=', $produit->id_produit)
+                    ->exists();
+                if ($exists) {
+                    $fail('Ce produit existe déjà pour ce magasin.');
+                }
+            },
+        ],
+        'id_categorie' => 'nullable|exists:categories,id',
+        'prix_ifc' => 'nullable|numeric|min:0',
+        'prix_shop' => 'nullable|numeric|min:0',
+        'statut' => 'nullable|string',
+        'code_barre' => [
+            'nullable',
+            'string',
+            'max:255',
+            function ($attribute, $value, $fail) use ($request, $produit) {
+                $exists = Produit::where('code_barre', $value)
+                    ->where('id_shop', $request->id_shop ?? $produit->id_shop)
+                    ->where('id_produit', '!=', $produit->id_produit)
+                    ->exists();
+                if ($exists) {
+                    $fail('Ce code-barre existe déjà pour ce magasin.');
+                }
+            },
+        ],
+    ]);
+
+    $produit->update($validated);
+
+    // Charger les relations categorie et shop après la mise à jour
+    $produit->load('categorie', 'shop');
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Produit mis à jour avec succès.',
+        'data' => $produit,
+    ], 200);
+}
 
 
     /**

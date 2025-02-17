@@ -23,86 +23,77 @@ class EmployeController extends Controller
     const STATUT_INACTIF = 'inactif';
     const STATUT_EN_ATTENTE = 'en_attente';
     const STATUT_ACTIF = 'actif';
-    const STATUT_TEMPORAIRE = 'temporaire';
-
+ 
     /**
      * Création d'un compte Employé.
      */
     public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8',
-            'nom' => 'required|string|max:255',
-            'id_entreprise' => 'required|exists:entreprises,id_entreprise',
-            'tel' => 'required|string|max:15',  
-            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+{
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|min:8',
+        'nom' => 'required|string|max:255',
+        'id_entreprise' => 'required|exists:entreprises,id_entreprise',
+        'tel' => 'required|string|max:15',  
+        'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+    }
+
+    DB::beginTransaction();
+
+    try {
+        $userData = [
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'nom' => $request->nom,
+            'id_entreprise' => $request->id_entreprise,
+            'tel' => $request->tel,  
+            'role' => 'employe',
+        ];
+
+        if ($request->hasFile('photo_profil')) {
+            $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
+            $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
+            $userData['photo_profil'] = 'storage/' . $filePath;
+        }
+
+        $user = User::create($userData);
+
+        // Charger la relation entreprise
+        $user->load('entreprise');
+
+        // Générer l'OTP avec une expiration
+        $otp = Otp::create([
+            'email' => $user->email,
+            'otp' => random_int(100000, 999999),
+            'expires_at' => now()->addMinutes(10),
         ]);
-    
-        if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
-        }
-    
-        DB::beginTransaction();
-    
-        try {
-            $userData = [
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'nom' => $request->nom,
-                'id_entreprise' => $request->id_entreprise,
-                'tel' => $request->tel,  
-                'role' => 'employe',
-            ];
-    
-            if ($request->hasFile('photo_profil')) {
-                $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
-                $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
-                $userData['photo_profil'] = 'storage/' . $filePath;
-            }
-    
-            $user = User::create($userData);
-    
-            // Générer l'OTP avec une expiration
-            $otp = Otp::create([
-                'email' => $user->email,
-                'otp' => random_int(100000, 999999),
-                'expires_at' => now()->addMinutes(10),
-            ]);
-    
-            // Envoyer l'OTP par email
-            Mail::to($user->email)->send(new \App\Mail\OtpMail($otp->otp));
-    
-            DB::commit();
-    
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Compte employé créé avec succès. Un OTP a été envoyé.',
-                'data' => $user,
-            ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Une erreur est survenue. Veuillez réessayer.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+
+        // Envoyer l'OTP par email
+        Mail::to($user->email)->send(new \App\Mail\OtpMail($otp->otp));
+
+        DB::commit();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Compte employé créé avec succès. Un OTP a été envoyé.',
+            'data' => $user,
+        ], 201);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Une erreur est survenue. Veuillez réessayer.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
+
     
-    
-    // Méthode pour nettoyer les utilisateurs avec OTP expiré
-    public function cleanExpiredUsers()
-    {
-        DB::transaction(function () {
-            $expiredOtps = Otp::where('expires_at', '<', now())->pluck('email');
-            
-            User::whereIn('email', $expiredOtps)->delete();
-    
-            Otp::whereIn('email', $expiredOtps)->delete();
-        });
-    }
-    
+   
     /**
      * Validation de l'OTP pour l'employé.
      */
@@ -295,84 +286,78 @@ class EmployeController extends Controller
      * Mettre à jour un employé.
      */
     public function update(Request $request)
-    {
-        $currentUser = Auth::user();
-    
-        // Vérification des autorisations
-        if ($currentUser->role !== 'employe') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à modifier ce compte.',
-            ], 403);
-        }
-    
-        // Validation des entrées
-        $validator = Validator::make($request->all(), [
-            'nom' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,' . $currentUser->id_user . ',id_user',
-            'old_password' => 'sometimes|required_with:password|min:8', // Ancien mot de passe requis si nouveau mot de passe
-            'password' => 'sometimes|required|min:8|confirmed', // Nouveau mot de passe avec confirmation
-            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
-        ], [
-            'old_password.required_with' => 'L\'ancien mot de passe est requis pour modifier le mot de passe.',
-        ]);
-    
-        if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
-        }
-    
-        DB::beginTransaction();
-    
-        try {
-            // Vérification et mise à jour du mot de passe
-            if ($request->has('password')) {
-                // Vérification de l'ancien mot de passe
-                if (!Hash::check($request->old_password, $currentUser->password)) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'L\'ancien mot de passe est incorrect.',
-                    ], 400);
-                }
-    
-                // Mise à jour du mot de passe
-                $currentUser->password = Hash::make($request->password);
-            }
-    
-            // Gestion de l'image de profil
-            if ($request->hasFile('photo_profil')) {
-                $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
-                $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
-                $currentUser->photo_profil = 'storage/' . $filePath;
-            }
-    
-            // Mise à jour des autres champs
-            $currentUser->update($request->except(['password', 'photo_profil', 'old_password']));
-    
-            DB::commit();
-    
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Employé mis à jour avec succès.',
-                'data' => $currentUser,
-            ], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Une erreur est survenue lors de la mise à jour.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-    
-    /**
-     * Vérifie si un utilisateur a les permissions pour activer un compte.
-     */
-    private function hasPermission($user)
-    {
-        return in_array($user->role, ['superadmin', 'entreprise_gest']);
+{
+    $currentUser = Auth::user();
+
+    // Vérification des autorisations
+    if ($currentUser->role !== 'employe') {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Vous n\'êtes pas autorisé à modifier ce compte.',
+        ], 403);
     }
 
+    // Validation des entrées
+    $validator = Validator::make($request->all(), [
+        'nom' => 'sometimes|required|string|max:255',
+        'email' => 'sometimes|required|email|unique:users,email,' . $currentUser->id_user . ',id_user',
+        'old_password' => 'sometimes|required_with:password|min:8', // Ancien mot de passe requis si nouveau mot de passe
+        'password' => 'sometimes|required|min:8|confirmed', // Nouveau mot de passe avec confirmation
+        'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
+    ], [
+        'old_password.required_with' => 'L\'ancien mot de passe est requis pour modifier le mot de passe.',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+    }
+
+    DB::beginTransaction();
+
+    try {
+        // Vérification et mise à jour du mot de passe
+        if ($request->has('password')) {
+            // Vérification de l'ancien mot de passe
+            if (!Hash::check($request->old_password, $currentUser->password)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'L\'ancien mot de passe est incorrect.',
+                ], 400);
+            }
+
+            // Mise à jour du mot de passe
+            $currentUser->password = Hash::make($request->password);
+        }
+
+        // Gestion de l'image de profil
+        if ($request->hasFile('photo_profil')) {
+            $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
+            $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
+            $currentUser->photo_profil = 'storage/' . $filePath;
+        }
+
+        // Mise à jour des autres champs
+        $currentUser->update($request->except(['password', 'photo_profil', 'old_password']));
+
+        DB::commit();
+
+        // Charger la relation entreprise
+        $currentUser->load('entreprise');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Employé mis à jour avec succès.',
+            'data' => $currentUser,
+        ], 200);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Une erreur est survenue lors de la mise à jour.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
    
  
     public function getEmployeInfo($id_user)

@@ -93,9 +93,8 @@ use Illuminate\Support\Facades\DB;
             ], 403);
         }
     
-        // Validation des données
+        // Validation des données (on ne demande plus le code_ifc puisque celui-ci sera généré automatiquement)
         $validated = $request->validate([
-            'code_ifc' => 'required|string|unique:assurances,code_ifc|max:255',
             'libelle' => 'nullable|string|unique:assurances,libelle|max:255',
             'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096',
         ]);
@@ -110,6 +109,13 @@ use Illuminate\Support\Facades\DB;
             }
     
             $validated['logo'] = $logoPath ? 'storage/' . $logoPath : null;
+    
+            // Automatisation du code IFC
+            // On récupère la dernière assurance créée pour en déduire le prochain numéro
+            $latestAssurance = Assurance::orderBy('id_assurance', 'desc')->first();
+            $nextId = $latestAssurance ? $latestAssurance->id_assurance + 1 : 1;
+            // Par exemple, le code IFC sera sous la forme IFC-00001, IFC-00002, etc.
+            $validated['code_ifc'] = 'IFC-' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
     
             // Création de l'assurance
             $assurance = Assurance::create($validated);
@@ -130,6 +136,7 @@ use Illuminate\Support\Facades\DB;
             ], 500);
         }
     }
+    
    
 
     /**
