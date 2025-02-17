@@ -207,11 +207,26 @@ Route::post('/compte/{numeroCompte}/update-pin', [CompteController::class, 'upda
 //les demandes de fonds
 
  
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::post('/demande/fonds', [DemandeController::class, 'store']);
-    Route::get('/demandes', [DemandeController::class, 'index']);         // ✅ Lister les demandes
-    Route::put('/demande/{id}/valider', [DemandeController::class, 'valider']); // ✅ Valider une demande
-});
+ // Demandes de fonds
+
+
+
+ Route::middleware(['auth:sanctum'])->group(function () {
+  
+    Route::post('demandes/fonds', [DemandeController::class, 'storeFonds']);
+    Route::post('demandes/fonds/{id}/valider', [DemandeController::class, 'validerFonds']);
+    Route::post('demandes/fonds/{id}/refuser', [DemandeController::class, 'refuserFonds']);
+    
+    // Demandes transmit
+    Route::post('demandes/transmit', [DemandeController::class, 'storeTransmit']);
+    Route::post('demandes/transmit/{id}/accorder', [DemandeController::class, 'accorderTransmit']);
+    Route::post('demandes/transmit/{id}/refuser', [DemandeController::class, 'refuserTransmit']);
+    
+    // Liste des demandes (optionnel, avec filtre via query param "type")
+    Route::get('demandes', [DemandeController::class, 'index']);
+    
+       });
+    
 
 //les transactions pour les comptes
 
