@@ -178,6 +178,7 @@ class DemandeController extends Controller
             'motif'         => null,
         ]);
     
+        
         return response()->json([
             'message' => 'La demande transmit a été envoyée',
             'status'  => 'success',
