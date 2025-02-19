@@ -126,10 +126,13 @@ class EntrepriseGestController extends Controller
 
         // Créer l'utilisateur
         $user = User::create($userData);
+        // Charger la relation entreprise pour renvoyer l'entreprise avec son gestionnaire associée
+        $user->load('entreprise');
 
         // Associer l'utilisateur comme gestionnaire de l'entreprise
         $entreprise->id_gestionnaire = $user->id_user;
         $entreprise->save();
+        
 
         // Créer un compte bancaire pour l'utilisateur
         $defaultPin = Compte::generateDefaultPin();
@@ -157,6 +160,7 @@ class EntrepriseGestController extends Controller
                 'tel'=>$user->tel,
                 'statut' => $user->statut,
                 'photo_profil' => $user->photo_profil,
+                'entreprise'=> $user->entreprise
             ],
             'compte' => [
                 'numero_compte' => $compte->numero_compte,
@@ -244,6 +248,8 @@ class EntrepriseGestController extends Controller
             }
     
             $userToUpdate->save();
+            // Charger la relation entreprise pour renvoyer l'entreprise avec son gestionnaire associée
+            $userToUpdate->load('entreprise');
     
             DB::commit();
     
@@ -258,6 +264,7 @@ class EntrepriseGestController extends Controller
                     'role' => $userToUpdate->role,
                     'statut' => $userToUpdate->statut,
                     'photo_profil' => $userToUpdate->photo_profil,
+                    'entreprise'=> $userToUpdate->entreprise,
                 ],
             ], 200);
         } catch (\Exception $e) {

@@ -127,6 +127,7 @@ public function register(Request $request)
         $assurance->id_gestionnaire = $user->id_user;
         $assurance->save();
 
+
         // Envoyer un email au gestionnaire avec ses informations de connexion
         Mail::to($user->email)->send(new \App\Mail\AccountCreatedMailA($user, $generatedPassword));
 
@@ -143,6 +144,11 @@ public function register(Request $request)
                 'role' => $user->role,
                 'statut' => $user->statut,
                 'photo_profil' => $user->photo_profil,
+                'assurance'=> [
+                    'id_assurance' => $assurance->id_assurance,
+                    'code_ifc' => $assurance->code_ifc,
+                    'libelle' => $assurance->libelle,
+                ],
             ],
             'assurance' => [
                 'id_assurance' => $assurance->id_assurance,
@@ -229,6 +235,8 @@ public function updateProfile(Request $request, $id_user)
         }
 
         $userToUpdate->save();
+        // Charger la relation assurance pour renvoyer l'assurance avec son gestionnaire associée
+        $userToUpdate->load('assurance');
 
         DB::commit();
 
@@ -243,6 +251,11 @@ public function updateProfile(Request $request, $id_user)
                 'role' => $userToUpdate->role,
                 'statut' => $userToUpdate->statut,
                 'photo_profil' => $userToUpdate->photo_profil,
+                'assurance'=> [
+                    'id_assurance' => $userToUpdate->assurance->id_assurance,
+                    'code_ifc' => $userToUpdate->assurance->code_ifc,
+                    'libelle' => $userToUpdate->assurance->libelle,
+                ],
             ],
         ], 200);
     } catch (\Exception $e) {
