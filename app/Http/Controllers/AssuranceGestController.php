@@ -46,6 +46,8 @@ class AssuranceGestController extends Controller
                 'id_user' => $gestionnaire->id_user,
                 'nom' => $gestionnaire->nom,
                 'email' => $gestionnaire->email,
+                'ville' => $gestionnaire->ville,
+                'quartier' => $gestionnaire->quartier,
                 'tel' => $gestionnaire->tel,
                 'role' => $gestionnaire->role,
                 'statut' => $gestionnaire->statut,
@@ -81,6 +83,8 @@ public function register(Request $request)
         'nom' => 'required|string|max:255',
         'email' => 'required|email|unique:users,email',
         'tel' => 'required|string|max:20',
+        'ville' => 'nullable|string',
+        'quartier' => 'nullable|string',
         'id_assurance' => 'required|exists:assurances,id_assurance',
         'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
     ]);
@@ -112,6 +116,13 @@ public function register(Request $request)
             'statut' => 'actif',
             'id_assurance' => $validated['id_assurance'], // Lier l'assurance à l'utilisateur
         ];
+                 // Mise à jour des informations autorisées
+                 if (isset($validated['ville'])) {
+                    $userData['ville'] = $validated['ville'];
+                }
+                 if (isset($validated['quartier'])) {
+                    $userData['quartier'] = $validated['quartier'];
+                }
 
         // Gérer l'upload de la photo de profil
         if ($request->hasFile('photo_profil')) {
@@ -195,6 +206,8 @@ public function updateProfile(Request $request, $id_user)
         'nom' => 'nullable|string|max:255|unique:users,nom,' . $id_user . ',id_user',
         'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
         'tel' => 'nullable|string|max:20',
+        'ville' => 'nullable|string',
+        'quartier' => 'nullable|string',
         'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
         'old_password' => 'nullable|required_with:password|min:8',
         'password' => 'nullable|min:8|confirmed',
@@ -216,6 +229,12 @@ public function updateProfile(Request $request, $id_user)
         }
         if (isset($validated['tel'])) {
             $userToUpdate->tel = $validated['tel'];
+        }
+        if (isset($validated['ville'])) {
+            $userToUpdate->ville = $validated['ville'];
+        }
+        if (isset($validated['quartier'])) {
+            $userToUpdate->quartier = $validated['quartier'];
         }
         if ($request->hasFile('photo_profil')) {
             $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
@@ -247,6 +266,8 @@ public function updateProfile(Request $request, $id_user)
                 'id_user' => $userToUpdate->id_user,
                 'nom' => $userToUpdate->nom,
                 'email' => $userToUpdate->email,
+                'ville' => $userToUpdate->ville,
+                'quartier' => $userToUpdate->quartier,
                 'tel' => $userToUpdate->tel,
                 'role' => $userToUpdate->role,
                 'statut' => $userToUpdate->statut,

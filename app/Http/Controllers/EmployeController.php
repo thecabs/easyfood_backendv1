@@ -33,6 +33,8 @@ class EmployeController extends Controller
         'email' => 'required|email|unique:users,email',
         'password' => 'required|min:8',
         'nom' => 'required|string|max:255',
+        'ville' => 'nullable|string',
+        'quartier' => 'nullable|string',
         'id_entreprise' => 'required|exists:entreprises,id_entreprise',
         'tel' => 'required|string|max:15',  
         'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
@@ -53,6 +55,13 @@ class EmployeController extends Controller
             'tel' => $request->tel,  
             'role' => 'employe',
         ];
+        // Mise à jour des informations autorisées
+        if (isset($request->ville)) {
+            $userData['ville'] = $request->ville;
+        }
+        if (isset($request->quartier)) {
+            $userData['quartier'] = $request->quartier;
+        }
 
         if ($request->hasFile('photo_profil')) {
             $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
@@ -301,6 +310,8 @@ class EmployeController extends Controller
     $validator = Validator::make($request->all(), [
         'nom' => 'sometimes|required|string|max:255',
         'email' => 'sometimes|required|email|unique:users,email,' . $currentUser->id_user . ',id_user',
+        'ville' => 'nullable|string',
+        'quartier' => 'nullable|string',
         'old_password' => 'sometimes|required_with:password|min:8', // Ancien mot de passe requis si nouveau mot de passe
         'password' => 'sometimes|required|min:8|confirmed', // Nouveau mot de passe avec confirmation
         'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
@@ -395,6 +406,8 @@ class EmployeController extends Controller
     return response()->json([
         'nom' => $user->nom,
         'email' => $user->email,
+        'ville' => $user->ville,
+        'quartier' => $user->quartier,
         'numero_compte' => $compte->numero_compte,
         'solde' => $compte->solde,
         'date_creation' => $compte->date_creation,
