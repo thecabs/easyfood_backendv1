@@ -147,11 +147,10 @@ class EmployeController extends Controller
     public function activate(Request $request)
     {
         $currentUser = Auth::user();
-
-        if (!$this->hasPermission($currentUser)) {
+        if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest','employe'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
 
