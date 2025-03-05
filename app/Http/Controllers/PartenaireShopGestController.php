@@ -288,7 +288,7 @@ class PartenaireShopGestController extends Controller
 
             $userToUpdate->save();
             // Charger la relation shop pour renvoyer le shop avec son gestionnaire associée
-            $userToUpdate->load('shop');
+            $userToUpdate->load('partenaireShop');
 
             DB::commit();
 
@@ -305,7 +305,7 @@ class PartenaireShopGestController extends Controller
                     'role' => $userToUpdate->role,
                     'statut' => $userToUpdate->statut,
                     'photo_profil' => $userToUpdate->photo_profil,
-                    'shop' => $userToUpdate->shop
+                    'shop' => $userToUpdate->partenaireShop
                 ],
             ], 200);
         } catch (\Exception $e) {
