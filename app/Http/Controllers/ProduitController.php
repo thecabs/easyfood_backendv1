@@ -14,7 +14,7 @@ class ProduitController extends Controller
     public function rechercherProduit(Request $request)
     {
         $currentUser = Auth::user();
-
+    
         // Vérification des autorisations
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere','employe'])) {
             return response()->json([
@@ -22,28 +22,31 @@ class ProduitController extends Controller
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-
+    
         // Validation des paramètres de la requête
         $request->validate([
             'id_shop'    => 'required|integer',
             'code_barre' => 'required|string',
         ]);
-
-        // Recherche du produit
+    
+        // Recherche du produit avec condition sur la quantité > 0
         $produit = Produit::with(['categorie', 'partenaire', 'stock', 'images'])
             ->where('code_barre', $request->code_barre)
             ->whereHas('categorie.shop', function ($query) use ($request) {
                 $query->where('id', $request->id_shop);
             })
+            ->whereHas('stock', function ($query) {
+                $query->where('quantite', '>', 0);
+            })
             ->first();
-
+    
         if (!$produit) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Produit introuvable pour ce magasin.',
+                'message' => 'Produit introuvable pour ce magasin ou indisponible.',
             ], 404);
         }
-
+    
         // Construction de la réponse JSON
         return response()->json([
             'status' => 'success',
@@ -59,19 +62,23 @@ class ProduitController extends Controller
                 'statut'              => $produit->statut,
                 'code_barre'          => $produit->code_barre,
                 'quantite_disponible' => $produit->stock->quantite ?? 0,
-                'photos'              => $produit->images->map(function ($image) {
-                    return [
-                        'url' => $image->url,
-                        'alt' => $image->alt ?? '',
-                    ];
-                }),
+               'photos' => $produit->images->map(function ($image) {
+    return [
+        'url' => $image->url_photo, // Utilise le bon nom de colonne
+        'alt' => '', // Ou, si vous ajoutez un champ alt dans le futur, utilisez-le ici
+    ];
+}),
+
                 'shop' => [
+                    'shopId'  => $produit->partenaire->id_shop ?? null,
+
                     'nom'  => $produit->partenaire->nom ?? null,
                     'logo' => $produit->partenaire->logo ?? null,
                 ],
             ],
         ], 200);
     }
+    
     /**
      * Liste des produits.
      */

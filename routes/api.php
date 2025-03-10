@@ -15,6 +15,8 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\CategorieController;
 use App\Http\Controllers\ProduitController;
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\FactureController;
+
 use App\Http\Controllers\ProductFeaturesController;
 
 
@@ -395,6 +397,12 @@ Route::middleware('auth:sanctum')->delete('delete/users/{id}', [UserController::
 Route::middleware('auth:sanctum')->post('/users/search-by-role', [UserController::class, 'searchByRole']);
 
 
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/facture/create', [FactureController::class, 'createInvoice']);
+    Route::post('/transaction/confirm', [TransactionController::class, 'confirmTransaction']);
+});
  
 
+ 
      

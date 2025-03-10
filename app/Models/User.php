@@ -57,4 +57,8 @@ class User extends Authenticatable
         return $this->hasOne(Compte::class, 'id_user', 'id_user');
     }
     
+
+ 
+ 
+
 }

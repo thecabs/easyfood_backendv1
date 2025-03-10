@@ -143,28 +143,37 @@ class CaissiereController extends Controller
     public function show($id_user)
     {
         $currentUser = Auth::user();
-
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
+    
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','caissiere'])) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-
-        $user = User::where('role', 'caissiere')->with('shop_gest')->find($id_user);
-
+    
+        // On recherche l'utilisateur avec le rôle 'caissiere' et on charge la relation partenaireShop
+        $user = User::where('role', 'caissiere')
+            ->with('partenaireShop')
+            ->find($id_user);
+    
         if (!$user) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Caissière introuvable.',
             ], 404);
         }
-
+    
+        // Récupération du nom du shop s'il existe
+       // $shopName = $user->partenaireShop ? $user->partenaireShop->nom : null;
+    
         return response()->json([
             'status' => 'success',
-            'data' => $user,
+            'data'   => [
+                'user'      => $user
+             ],
         ], 200);
     }
+    
 
     /**
      * Mettre à jour une caissière

@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\Compte;
+use Carbon\Carbon;
+use PDF; 
+use App\Models\Facture;
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -97,6 +101,133 @@ class TransactionController extends Controller
             ], 500);
         }
     }
+
     
-    
+    // public function confirmTransaction(Request $request)
+    // {
+    //     $client = $request->user(); // utilisateur authentifié (client)
+    //     $hashedPin = $request->input('hashed_pin');
+    //     $facture_id = $request->input('facture_id');
+
+    //     if (!$facture_id) {
+    //         return response()->json(['error' => 'Facture ID manquant.'], 400);
+    //     }
+
+    //     $compteClient = Compte::where('id_user', $client->id_user)->first();
+    //     if (!$compteClient) {
+    //         return response()->json(['error' => 'Compte client introuvable.'], 404);
+    //     }
+
+    //     // Comparaison du PIN haché (le PIN stocké doit être préalablement haché et, idéalement, salé)
+    //     if ($hashedPin !== $compteClient->pin) {
+    //         return response()->json(['error' => 'PIN invalide.'], 403);
+    //     }
+
+    //     $facture = Facture::find($facture_id);
+    //     if (!$facture) {
+    //         return response()->json(['error' => 'Facture introuvable.'], 404);
+    //     }
+
+    //     // Mise à jour du statut de la facture
+    //     $facture->statut = 'confirmed';
+    //     $facture->save();
+
+    //     $compteVendeur = Compte::where('id_user', $facture->id_vendeur)->first();
+    //     if (!$compteVendeur) {
+    //         return response()->json(['error' => 'Compte vendeur introuvable.'], 404);
+    //     }
+
+    //     // Création de la transaction
+    //     Transaction::create([
+    //         'numero_compte_src' => $compteClient->numero_compte,
+    //         'numero_compte_dest' => $compteVendeur->numero_compte,
+    //         'montant' => $facture->montant,
+    //         'date' => Carbon::now(),
+    //         'type' => 'transfert',
+    //     ]);
+
+    //     // Génération du PDF avec Dompdf
+    //     $data = [
+    //         'facture' => $facture,
+    //         'client' => $compteClient,
+    //         'vendeur' => $compteVendeur,
+    //     ];
+    //     $pdf = PDF::loadView('pdf.invoice', $data);
+    //     // Sauvegarde du PDF sur le serveur
+    //     $pdfPath = storage_path("app/invoices/{$facture->id_facture}.pdf");
+    //     $pdf->save($pdfPath);
+
+    //     return response()->json([
+    //         'message' => 'Transaction confirmée et facture générée.',
+    //         'pdf_url' => url("invoices/{$facture->id_facture}.pdf")
+    //     ]);
+    // }
+    public function confirmTransaction(Request $request)
+{
+    $client = $request->user(); // Utilisateur authentifié (client)
+    $hashedPin = $request->input('hashed_pin');
+    $facture_id = $request->input('facture_id');
+
+    if (!$facture_id) {
+        return response()->json(['error' => 'Facture ID manquant.'], 400);
+    }
+
+    $compteClient = Compte::where('id_user', $client->id_user)->first();
+    if (!$compteClient) {
+        return response()->json(['error' => 'Compte client introuvable.'], 404);
+    }
+
+    if ($hashedPin !== $compteClient->pin) {
+        return response()->json(['error' => 'PIN invalide.'], 403);
+    }
+
+    $facture = Facture::find($facture_id);
+    if (!$facture) {
+        return response()->json(['error' => 'Facture introuvable.'], 404);
+    }
+
+    // Mise à jour du statut de la facture
+    $facture->statut = 'confirmed';
+    $facture->save();
+
+    $compteVendeur = Compte::where('id_user', $facture->id_vendeur)->first();
+    if (!$compteVendeur) {
+        return response()->json(['error' => 'Compte vendeur introuvable.'], 404);
+    }
+
+    // Création de la transaction
+    Transaction::create([
+        'numero_compte_src' => $compteClient->numero_compte,
+        'numero_compte_dest' => $compteVendeur->numero_compte,
+        'montant' => $facture->montant,
+        'date' => Carbon::now(),
+        'type' => 'transfert',
+    ]);
+
+    // Génération du PDF
+    $shopName = $facture->shop->nom; // Supposons que la facture est liée au shop
+    $directory = storage_path("app/invoices/$shopName");
+    if (!file_exists($directory)) {
+        mkdir($directory, 0755, true);
+    }
+    $invoiceFileName = "facture_{$facture->id_facture}.pdf";
+    $pdfPath = "$directory/$invoiceFileName";
+
+    $data = [
+        'facture' => $facture,
+        'client' => $compteClient,
+        'vendeur' => $compteVendeur,
+    ];
+    $pdf = PDF::loadView('pdf.invoice', $data);
+    $pdf->save($pdfPath);
+
+    return response()->json([
+        'message' => 'Transaction confirmée et facture générée.',
+        'pdf_url' => url("invoices/$shopName/$invoiceFileName")
+    ]);
 }
+
+}
+
+    
+    

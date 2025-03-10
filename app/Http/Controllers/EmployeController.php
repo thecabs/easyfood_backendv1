@@ -137,12 +137,12 @@ class EmployeController extends Controller
      */
     public function activate(Request $request)
     {
-        $currentUser = Auth::user();
-
-        if (!$this->hasPermission($currentUser)) {
+        $user = Auth::user();
+    
+        if (!in_array($user->role, ['superadmin','entreprise_gest'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+                'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
             ], 403);
         }
 
@@ -445,8 +445,9 @@ public function getHistorique($id_user)
 
     // Liste des demandes de crédit
     $demandes_credit = Demande::where('id_user', $id_user)
-        ->select('montant', 'statut', 'created_at as date')
-        ->get();
+    ->select('montant', 'statut', 'motif', 'created_at as date')
+    ->get();
+
 
     return response()->json([
         'total_depenses' => $total_depenses,

@@ -16,8 +16,8 @@ class Demande extends Model
         'id_entreprise',
         'montant',
         'statut',
-        'type',    // Ajouté pour permettre l'assignation de masse
-        'motif'    // Au cas où tu voudrais l'utiliser
+        'type',     
+        'motif'     
     ];
 
     protected $casts = [
