@@ -116,6 +116,8 @@ class ProduitController extends Controller
                 'prix_shop' => $produit->prix_shop,
                 'statut' => $produit->statut,
                 'code_barre' => $produit->code_barre,
+                'created_at' => $produit->created_at,
+                'updated_at' => $produit->updated_at,
                 'quantite_disponible' => $produit->stock->quantite ?? 0,
                 'shop' => [
                     'id_shop' => $produit->partenaire->id_shop ?? null,

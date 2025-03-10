@@ -22,8 +22,8 @@ class DemandeController extends Controller
     {
         $currentUser = Auth::user();
         // Seuls les employés et superadmin peuvent créer une demande de fonds
-        if (!in_array($currentUser->role, ['employe', 'superadmin'])) {
-            return response()->json([
+        if (!in_array($currentUser->role, ['employe', 'superadmin','entreprise_gest'])) {
+            return response()->json([ 
                 'status'  => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);

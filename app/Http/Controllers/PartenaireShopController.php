@@ -89,6 +89,8 @@ class PartenaireShopController extends Controller
                 'ville' => $shop->ville,
                 'quartier' => $shop->quartier,
                 'logo' => $shop->logo,
+                'created_at' => $shop->created_at,
+                'updated_at' => $shop->updated_at,
                 'gestionnaire' => $shop->gestionnaire ? [
                     'id_user' => $shop->gestionnaire->id_user,
                     'nom' => $shop->gestionnaire->nom,

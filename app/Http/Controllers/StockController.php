@@ -126,15 +126,24 @@ class StockController extends Controller
             // Pour un gestionnaire de magasin, on récupère tous les magasins qu'il gère
             $shopIds = \App\Models\PartenaireShop::where('id_gestionnaire', $currentUser->id_user)
                          ->pluck('id_shop');
-            $stocksQuery->whereIn('id_shop', $shopIds)->with(['produit'=> function($query){
+            $stocksQuery->whereIn('id_shop', $shopIds)->with([
+                'produit'=> function($query){
                 $query->select('id_produit','nom','prix_ifc','prix_shop','code_barre');
-            }]);
+            },
+                'shop'=> function($query){
+                $query->select('id_shop','nom');
+            },]);
         } elseif ($currentUser->role === 'caissiere') {
             // Pour une caissière, on suppose que le magasin auquel elle est associée est stocké dans une propriété (exemple : id_shop)
             $stocksQuery->where('id_shop', $currentUser->id_shop)
-            ->with(['produit'=> function($query){
+            ->with([
+                'produit'=> function($query){
                 $query->select('id_produit','nom','prix_ifc','prix_shop','code_barre');
-            }]);
+            },
+                'shop'=> function($query){
+                $query->select('id_shop','nom');
+            },
+            ]);
         }
         // Vous pouvez ajouter d'autres restrictions si nécessaire pour le rôle 'admin'
     }
