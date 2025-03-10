@@ -16,7 +16,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -45,7 +45,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
     
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -80,7 +80,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',

@@ -79,6 +79,9 @@ class CaissiereController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|unique:users,email',
             'nom' => 'required|string|max:255',
+            'tel' => 'nullable|string|max:20',
+            'ville' => 'nullable|string',
+            'quartier' => 'nullable|string',
             'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);
 
@@ -104,6 +107,15 @@ class CaissiereController extends Controller
                 'role' => 'caissiere',
                 'statut' => 'actif',
             ]);
+            if (isset($request->tel)) {
+                $user['tel'] = $request->tel;
+            }
+            if (isset($request->ville)) {
+                $user['ville'] = $request->ville;
+            }
+            if (isset($request->quartier)) {
+                $user['quartier'] = $request->quartier;
+            }
 
             // Création d'un compte bancaire pour la caissière
             $defaultPin = Compte::generateDefaultPin();
@@ -119,12 +131,15 @@ class CaissiereController extends Controller
             Mail::to($user->email)->send(new \App\Mail\AccountCreatedCaissMail($user, $generatedPassword, $compte, $defaultPin));
 
             DB::commit();
-
+             // Charger la relation shop pour renvoyer le shop avec son gestionnaire associée
+             $user->load('partenaireShop');
             return response()->json([
                 'status' => 'success',
                 'message' => 'La caissière a été créée avec succès, un compte bancaire a été généré et un email contenant les informations a été envoyé.',
-                'user' => $user,
-                'compte' => $compte,
+                'data'   => [
+                    'user'=> $user,
+                    'compte'=> $compte
+                 ],
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -168,9 +183,7 @@ class CaissiereController extends Controller
     
         return response()->json([
             'status' => 'success',
-            'data'   => [
-                'user'      => $user
-             ],
+            'data'   =>  $user,
         ], 200);
     }
     
@@ -192,16 +205,23 @@ class CaissiereController extends Controller
         $validator = $request->validate([
             'id_shop' => 'nullable|exists:partenaire_shops,id_shop',
             'email' => 'nullable|email|unique:users,email,' . $id_user,
+            'tel' => 'nullable|string|max:20',
+            'ville' => 'nullable|string',
+            'quartier' => 'nullable|string',
             'nom' => 'nullable|string|max:255',
         ]);
 
         try {
             $user = User::where('role', 'caissiere')->findOrFail($id_user);
             $user->update($validator);
+            // Charger la relation shop pour renvoyer le shop avec son gestionnaire associée
+            $user->load('partenaireShop');
             return response()->json([
                 'status' => 'success',
                 'message' => 'Caissière mise à jour avec succès.',
-                'data' => $user,
+                'data'   => [
+                    'user'=> $user
+                 ],
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
