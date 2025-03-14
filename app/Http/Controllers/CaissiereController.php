@@ -192,7 +192,7 @@ class CaissiereController extends Controller
      * Mettre à jour une caissière
      */
     public function update(Request $request, $id_user)
-    {
+       {
         $currentUser = Auth::user();
 
         if (!in_array($currentUser->role, ['superadmin', 'caissiere'])) {
@@ -204,13 +204,12 @@ class CaissiereController extends Controller
 
         $validator = $request->validate([
             'id_shop' => 'nullable|exists:partenaire_shops,id_shop',
-            'email' => 'nullable|email|unique:users,email,' . $id_user,
+            'email' => 'nullable|email|unique:users,email,' . $id_user. ',id_user',
             'tel' => 'nullable|string|max:20',
             'ville' => 'nullable|string',
             'quartier' => 'nullable|string',
             'nom' => 'nullable|string|max:255',
         ]);
-
         try {
             $user = User::where('role', 'caissiere')->findOrFail($id_user);
             $user->update($validator);
@@ -219,9 +218,7 @@ class CaissiereController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Caissière mise à jour avec succès.',
-                'data'   => [
-                    'user'=> $user
-                 ],
+                'data' => $user,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
