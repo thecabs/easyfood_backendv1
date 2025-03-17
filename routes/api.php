@@ -385,6 +385,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //login
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/getuser', [AuthController::class, 'getUser']);
  
 //logout
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
