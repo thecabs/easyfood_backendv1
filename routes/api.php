@@ -169,10 +169,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
    
     Route::post('/travailleur/activate', [TravailleurController::class, 'activate']);
     // Liste des Travailleurs
-    Route::get('/travailleur', [EmployeController::class, 'index']);
+    Route::get('/travailleur', [TravailleurController::class, 'index']);
 
     // Affiche un Travailleur spécifique
-    Route::get('/travailleur/{id}', [EmployeController::class, 'show']);
+    Route::get('/travailleur/{id}', [TravailleurController::class, 'show']);
    
 });
 
