@@ -11,9 +11,9 @@ class Employe extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'id_employe';
+    protected $primaryKey = 'id_apporteur';
 
-    protected $fillable = ['id_entreprise', 'id_user'];
+    protected $fillable = ['id_apporteur', 'id_user'];
 
     public function entreprise()
     

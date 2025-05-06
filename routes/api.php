@@ -27,6 +27,7 @@ use App\Http\Controllers\AssuranceGestController;
 use App\Http\Controllers\DemandeController;
 use App\Http\Controllers\EntrepriseGestController;
 use App\Http\Controllers\getUserConnected;
+use App\Http\Controllers\TravailleurController;
 use App\Models\PartenaireShop;
 
 /*
@@ -154,6 +155,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Affiche un employé spécifique
     Route::get('/employes/{id}', [EmployeController::class, 'show']);
+   
+});
+// Travailleurs
+Route::prefix('travailleur')->group(function () {
+    Route::post('/register', [TravailleurController::class, 'register']);
+    Route::post('/validate-otp', [TravailleurController::class, 'validateOtp']);
+
+ });
+Route::middleware(['auth:sanctum'])->group(function () {
+
+    // activer un compte
+   
+    Route::post('/travailleur/activate', [TravailleurController::class, 'activate']);
+    // Liste des Travailleurs
+    Route::get('/travailleur', [EmployeController::class, 'index']);
+
+    // Affiche un Travailleur spécifique
+    Route::get('/travailleur/{id}', [EmployeController::class, 'show']);
    
 });
 
