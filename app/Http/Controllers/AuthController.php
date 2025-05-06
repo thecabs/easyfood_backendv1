@@ -225,4 +225,56 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Recuperer l'utilisateur connecté
+     */
+    public function getUser(Request $request)
+    {
+        $currentUser = Auth::user();
+        if ($currentUser->role == 'shop_gest') {
+            $currentUser =  User::where('id_user', $currentUser->id_user)
+                ->where('role', 'shop_gest')
+                ->with([
+                    'partenaireShop' => function ($query) {
+                        $query->select('id_shop', 'nom', 'adresse', 'ville', 'quartier', 'id_gestionnaire', 'logo');
+                    },
+                    'compte'
+                ])
+                ->first();
+        }
+        if ($currentUser->role == 'entreprise_gest') {
+            $currentUser =  User::where('id_user', $currentUser->id_user)
+                ->where('role', 'entreprise_gest')
+                ->with(['entreprise' => function ($query) {
+                    $query->select('id_entreprise', 'nom', 'secteur_activite', 'adresse', 'ville', 'quartier', 'id_gestionnaire', 'id_assurance', 'logo');
+                }, 'compte'])
+                ->first();
+        }
+        if ($currentUser->role == 'assurance_gest') {
+            $currentUser =  User::where('id_user', $currentUser->id_user)
+                ->where('role', 'assurance_gest')
+                ->with(['assurance' => function ($query) {
+                    $query->select('id_assurance', 'code_ifc', 'libelle', 'id_gestionnaire', 'logo');
+                }])
+                ->first();
+        }
+        if ($currentUser->role == 'caissiere') {
+            $currentUser = User::where('role', 'caissiere')
+                ->with('partenaireShop')
+                ->find($currentUser->id_user);
+        }
+        if ($currentUser->role == 'admin') {
+            $currentUser = User::where('role', 'admin')
+                ->with('partenaireShop')
+                ->find($currentUser->id_user);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profil mis à jour avec succès.',
+            'token' => "",
+            'user' => $currentUser]
+            , 200);
+    }
 }

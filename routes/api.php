@@ -26,6 +26,7 @@ use App\Http\Controllers\PartenaireShopGestController;
 use App\Http\Controllers\AssuranceGestController;
 use App\Http\Controllers\DemandeController;
 use App\Http\Controllers\EntrepriseGestController;
+use App\Http\Controllers\getUserConnected;
 use App\Models\PartenaireShop;
 
 /*
@@ -385,7 +386,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //login
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/getuser', [AuthController::class, 'getUser']);
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('user')->group(function () {
+        Route::get('/getuser', [AuthController::class, 'getUser']); // Créer une catégorie
+    });
+    
+  });
+
  
 //logout
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
