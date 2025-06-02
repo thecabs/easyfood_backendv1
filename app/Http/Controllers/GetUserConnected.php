@@ -19,7 +19,7 @@ class GetUserConnected extends Controller
       
         return response()->json([
             'status' => 'success',
-            'message' => 'admin créé avec succès.',
+            'message' => 'utilisateur récupéré.',
             'user' => $currentUser,
         ], 201);
     }

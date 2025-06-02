@@ -98,7 +98,7 @@ class AuthController extends Controller
     {
         // Validate input
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'password' => 'required',
         ]);
 
@@ -112,13 +112,18 @@ class AuthController extends Controller
         try {
             // Find user by email
             $user = User::where('email', $request->email)->first();
-
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Email ou mot de passe incorrect.',
+                ], 422);
+            }
             // Check if password matches
             if (!Hash::check($request->password, $user->password)) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Email ou mot de passe incorrect.',
-                ], 401);
+                ], 422);
             }
 
             // Check user status
@@ -272,8 +277,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Profil mis à jour avec succès.',
-            'token' => "",
+            'message' => 'Utilisateur recupéré avec succès.',
             'user' => $currentUser]
             , 200);
     }
