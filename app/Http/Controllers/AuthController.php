@@ -271,8 +271,14 @@ class AuthController extends Controller
         }
         if ($currentUser->role == 'admin') {
             $currentUser = User::where('role', 'admin')
-                ->with('partenaireShop')
-                ->find($currentUser->id_user);
+            ->select('id_user','nom','email','tel','ville','quartier','role')
+            ->find($currentUser->id_user);
+        }
+        if ($currentUser->role == 'employe') {
+            $currentUser = User::where('role', 'employe')
+            ->with(['entreprise' => function ($query) {
+                $query->select('id_entreprise', 'nom', 'secteur_activite', 'adresse', 'ville', 'quartier', 'id_gestionnaire', 'id_assurance', 'logo');
+            }]);
         }
 
         return response()->json([
