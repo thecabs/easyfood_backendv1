@@ -1,0 +1,1 @@
+- on ne peut pas ajouter deux categories de meme nom dans deux shop different

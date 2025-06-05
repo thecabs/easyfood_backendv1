@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Categorie;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class CategorieController extends Controller
 {
@@ -53,7 +54,10 @@ class CategorieController extends Controller
         }
     
         $validated = $request->validate([ 
-            'libelle' => 'required|string|unique:categories,libelle|max:255',
+            'libelle' => ['required','string',Rule::unique('categories')->where(function($query){
+                $user =  Auth::user();
+                $query->where('id_shop',$user->id_shop);
+            })],
             'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);
     
