@@ -45,8 +45,6 @@ class TravailleurController extends Controller
         ], 200);
     }
     
-    
-    
     /**
      * Activer un compte employé.
      */
