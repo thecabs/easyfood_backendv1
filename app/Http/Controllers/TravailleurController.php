@@ -287,7 +287,7 @@ class TravailleurController extends Controller
        'quartier' => 'nullable|string',
        'old_password' => 'sometimes|required_with:password|min:8', // Ancien mot de passe requis si nouveau mot de passe
        'password' => 'sometimes|required|min:8|confirmed', // Nouveau mot de passe avec confirmation
-       'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096', // Validation de l'image
+       'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096', // Validation de l'image
    ], [
        'old_password.required_with' => 'L\'ancien mot de passe est requis pour modifier le mot de passe.',
    ]);

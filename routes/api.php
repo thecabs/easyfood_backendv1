@@ -62,6 +62,7 @@ Route::prefix('superadmin')->group(function () {
 
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('admin')->group(function () {
+            Route::post('/update/{id_user}', [AdminController::class, 'updateProfile']);
             Route::put('/update/{id_user}', [AdminController::class, 'updateProfile']);
             Route::delete('/delete/{id_user}', [AdminController::class, 'deleteUser']);
         });

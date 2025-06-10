@@ -271,7 +271,7 @@ class AuthController extends Controller
         }
         if ($currentUser->role == 'admin') {
             $currentUser = User::where('role', 'admin')
-            ->select('id_user','nom','email','tel','ville','quartier','role')
+            ->select('id_user','nom','email','tel','ville','quartier','role','photo_profil')
             ->find($currentUser->id_user);
         }
         if ($currentUser->role == 'employe') {

@@ -208,7 +208,7 @@ public function updateProfile(Request $request, $id_user)
         'tel' => 'nullable|string|max:20',
         'ville' => 'nullable|string',
         'quartier' => 'nullable|string',
-        'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+        'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         'old_password' => 'nullable|required_with:password|min:8',
         'password' => 'nullable|min:8|confirmed',
     ], [

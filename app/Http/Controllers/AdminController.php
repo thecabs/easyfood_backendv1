@@ -78,7 +78,9 @@ class AdminController extends Controller
             'nom' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $id_user . ',id_user',
             'tel' => 'nullable|string|max:20',
-            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'ville' => 'nullable|string',
+            'quartier' => 'nullable|string',
+            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
     
@@ -91,6 +93,12 @@ class AdminController extends Controller
         }
         if ($request->has('tel')) {
             $user->tel = $validated['tel'];
+        }
+        if ($request->has('ville')) {
+            $user->ville = $validated['ville'];
+        }
+        if ($request->has('quartier')) {
+            $user->quartier = $validated['quartier'];
         }
         if ($request->hasFile('photo_profil')) {
             // Supprimer l'ancienne photo si elle existe
@@ -111,11 +119,13 @@ class AdminController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Profil mis à jour avec succès.',
-            'user' => [
+            'data' => [
                 'id_user' => $user->id_user,
                 'email' => $user->email,
                 'nom' => $user->nom,
                 'tel' => $user->tel,
+                'ville' => $user->ville,
+                'quartier' => $user->quartier,
                 'photo_profil' => $user->photo_profil,
                 'role' => $user->role,
                 'statut' => $user->statut,
