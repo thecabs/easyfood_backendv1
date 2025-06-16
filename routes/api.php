@@ -64,6 +64,7 @@ Route::prefix('superadmin')->group(function () {
         Route::prefix('admin')->group(function () {
             Route::post('/update/{id_user}', [AdminController::class, 'updateProfile']);
             Route::put('/update/{id_user}', [AdminController::class, 'updateProfile']);
+            Route::get('/show/{id_user}', [AdminController::class, 'show']);
             Route::delete('/delete/{id_user}', [AdminController::class, 'deleteUser']);
         });
     });

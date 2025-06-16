@@ -109,7 +109,7 @@ class EntrepriseController extends Controller
             ], 403);
         }
 
-        $entreprise = Entreprise::with('assurance')->find($id);
+        $entreprise = Entreprise::with(['assurance','gestionnaire'])->find($id);
 
         if (!$entreprise) {
             return response()->json(['message' => 'Entreprise non trouvée'], 404);

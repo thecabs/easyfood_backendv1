@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Foundation\Auth\User as AuthUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
@@ -48,6 +49,25 @@ class AdminController extends Controller
                 'statut' => $user->statut,
             ],
         ], 201);
+    }
+
+    /**
+     * Recuperer l'admin
+     */
+    public function show($id){
+        $admin = User::find($id);
+        if($admin){
+            return response()->json([
+                "data"=> $admin,
+                "message"=> "utilisateur récupéré avec succès."
+            ],200);
+        }else{
+            return response()->json([
+                "data"=> $admin,
+                "message"=> "utilisateur non Trouvé."
+            ],200);
+
+        }
     }
 
     /**
