@@ -168,7 +168,7 @@ class DemandeController extends Controller
     /**
      * Accorder une demande.
      */
-    public function accorder(Request $request, $id)
+    public function accorder( $id)
     {
         $user = Auth::user();
         $verifRole = new VerifRole();
@@ -194,7 +194,9 @@ class DemandeController extends Controller
 
                 if ($verifRole->isAdmin()) {
                     $demande->load('emetteur', 'destinataire.entreprise','images');
-                } else {
+                } else if ($verifRole->isShop())  {
+                    $demande->load('emetteur', 'destinataire.partenaireShop','images');
+                }else{
                     $demande->load('emetteur', 'destinataire','images');
                 }
             } else {
@@ -226,7 +228,7 @@ class DemandeController extends Controller
     {
         $user = Auth::user();
         $verifRole = new VerifRole();
-        $validated = $request->validated([
+        $validated = $request->validate([
             'motif' => 'required|string'
         ]);
 
@@ -253,7 +255,9 @@ class DemandeController extends Controller
 
                 if ($verifRole->isAdmin()) {
                     $demande->load('emetteur', 'destinataire.entreprise','images');
-                } else {
+                } else if($verifRole->isShop()){
+                    $demande->load('emetteur', 'destinataire.partenaireShop','images');
+                }else{
                     $demande->load('emetteur', 'destinataire','images');
                 }
             } else {
