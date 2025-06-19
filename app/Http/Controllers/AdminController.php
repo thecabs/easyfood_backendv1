@@ -2,21 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreDemandeRequest;
-use App\Http\Requests\UpdateDemandeRequest;
-use App\Models\Demande;
+use Exception;
+use App\Models\User;
 use App\Models\Roles;
+use App\Models\Compte;
+use App\Models\Demande;
+use App\Models\VerifRole;
+use Illuminate\Http\Request;
 use App\Models\Roles_demande;
 use App\Models\Statuts_demande;
-use App\Models\User;
-use Exception;
-use Illuminate\Foundation\Auth\User as AuthUser;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\StoreDemandeRequest;
+use App\Http\Requests\UpdateDemandeRequest;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class AdminController extends Controller
 {
@@ -46,6 +49,20 @@ class AdminController extends Controller
             'role' => 'admin',
             'statut' => 'actif',
         ]);
+
+        // Créer un compte bancaire pour l'utilisateur
+        $defaultPin = Compte::generateDefaultPin();
+        $compte = Compte::create([
+            'numero_compte' => Compte::generateNumeroCompte($user),
+            'solde' => 0,
+            'date_creation' => now(),
+            'id_user' => $user->id_user,
+            'pin' => Hash::make($defaultPin),
+        ]);
+
+        // Envoyer un email au gestionnaire avec ses informations de connexion
+        Mail::to($user->email)->send(new \App\Mail\AccountCreatedMail($user, $request->password, $compte, $defaultPin));
+
 
         return response()->json([
             'status' => 'success',
@@ -189,150 +206,21 @@ class AdminController extends Controller
         ], 200);
     }
 
-    /**
-     * Recuperer les demandes de l'admin.
-     */
-    public function getDemandes()
+    public function index()
     {
-        $user = Auth::user();
-
-        if ($user->role != Roles::Admin->value) {
+        $verifRole = new VerifRole();
+        if($verifRole->isAdmin() OR $verifRole->isShop() ){
+            return response()->json([
+                'status' => 'success',
+                'data' => User::select('id_user','nom','ville','quartier','tel','email','id_shop','photo_profil')->where('role', Roles::Admin->value)->get(),
+                'message' => 'admins récupérés avec succès.'
+            ],200);
+        }else{
             return response()->json([
                 'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
-            ], 403);
-        }
-
-        $demandes =  Demande::where('role', Roles::Admin->value)->with('destinataire.partenaireShop')->get();
-
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $demandes,
-        ], 200);
-    }
-
-    /**
-     * envoyer une demande de l'admin.
-     */
-    public function sendDemand(StoreDemandeRequest $request)
-    {
-        $validated = $request->validated();
-        DB::beginTransaction();
-        try{
-
-            // creation de la demande
-            $demande = Demande::create([
-                'id_emetteur'=> $validated['id_emetteur'],
-                'id_destinataire'=> $validated['id_destinataire'],
-                'montant'=> $validated['montant'],
-                'role'=> Roles_demande::Admin->value,
-                'statut'=> Statuts_demande::En_attente->value,
-                'motif'=> '',
+                'message' => 'vous ne pouvez pas éffectuer cette action.'
             ]);
 
-            $demande->load(['emetteur','destinataire.partenaireShop']);
-            // Sauvegarde explicite pour obtenir l'ID
-            $demande->save();
-            //enregistrement des images
-            if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $image) {
-                    $path = $image->store('images_demande','public');
-                    $demande->images()->create([
-                        'url' => $path,
-                        'id_demande' => $demande->id_demande
-                    ]);
-                }
-            }
-            DB::commit();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Demande envoyée avec succès.',
-                'data' => $demande
-            ],201);
-
-        } catch(Exception $e){
-
-            DB::rollBack();
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Erreur lors de l\'envoi de la demande.',
-                'error' => $e->getMessage(),
-            ],500);
-        }
-    }
-    /**
-     * modifier une demande de l'admin.
-     */
-    public function updateDemand(UpdateDemandeRequest $request, $id_demande)
-    {
-        $validated = $request->validated();
-        DB::beginTransaction();
-        try{
-            //verification de l'existance de la demande
-            $demande = Demande::findOrFail($id_demande);
-
-            //modification des donnee
-            if(isset($validated['motif'])){
-                $demande->motif = $validated['motif'];
-            }
-            $demande->statut = $validated['statut'];
-            // creation de la demande
-            $demande->save();
-
-            $demande->load(['emetteur','destinataire.partenaireShop']);
-    
-            DB::commit();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Demande modifiée avec succès.',
-                'data' => $demande
-            ],201);
-
-        } catch(Exception $e){
-
-            DB::rollBack();
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Erreur lors de la modification de la demande.',
-                'error' => $e->getMessage(),
-            ],500);
-        }
-    }
-    /**
-     * supprimer une demande de l'admin.
-     */
-    public function deleteDemand($id_demande)
-    {
-        DB::beginTransaction();
-        try{
-            //verification de l'existance de la demande
-            $demande = Demande::findOrFail($id_demande);
-
-            // suspression la demande
-            $demande->destroy();
-    
-            DB::commit();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Demande suprimée avec succès.',
-                'data' => $demande
-            ],201);
-
-        } catch(Exception $e){
-
-            DB::rollBack();
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Erreur lors de la suspression de la demande.',
-                'error' => $e->getMessage(),
-            ],500);
         }
     }
 }

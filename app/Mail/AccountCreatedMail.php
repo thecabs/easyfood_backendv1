@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Roles;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -38,13 +39,39 @@ class AccountCreatedMail extends Mailable
      */
     public function build()
     {
-        return $this->view('emails.account_created')
-            ->subject('Votre compte gestionnaire assurance a été créé')
-            ->with([
-                'user' => $this->user,
-                'password' => $this->password,
-                'compte' => $this->compte,
-                'pin' => $this->pin,
-            ]);
+        if($this->user->role == Roles::Admin){
+
+            return $this->view('emails.account_created')
+                ->subject('Votre compte administrateur a été créé')
+                ->with([
+                    'user' => $this->user,
+                    'password' => $this->password,
+                    'compte' => $this->compte,
+                    'pin' => $this->pin,
+                ]);
+        }
+        if($this->user->role == Roles::Shop){
+
+            return $this->view('emails.account_created')
+                ->subject('Votre compte gestionnaire shop a été créé')
+                ->with([
+                    'user' => $this->user,
+                    'password' => $this->password,
+                    'compte' => $this->compte,
+                    'pin' => $this->pin,
+                ]);
+        }
+        if($this->user->role == Roles::Entreprise){
+
+            return $this->view('emails.account_created')
+                ->subject('Votre compte gestionnaire entreprise a été créé')
+                ->with([
+                    'user' => $this->user,
+                    'password' => $this->password,
+                    'compte' => $this->compte,
+                    'pin' => $this->pin,
+                ]);
+        }
+
     }
 }

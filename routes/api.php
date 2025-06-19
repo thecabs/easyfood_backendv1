@@ -70,6 +70,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/demande/{id_demande}', [AdminController::class, 'deleteDemand']);
         Route::put('/update/{id_user}', [AdminController::class, 'updateProfile']);
         Route::get('/show/{id_user}', [AdminController::class, 'show']);
+        Route::get('/', [AdminController::class, 'index']);
         Route::delete('/delete/{id_user}', [AdminController::class, 'deleteUser']);
     });
 });
@@ -104,6 +105,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 Route::middleware(['auth:sanctum'])->group(function () {
     // Route pour enregistrer un gestionnaire assurance
+    Route::get('/assurance-gest', [AssuranceGestController::class, 'index']);
     Route::post('/assurance-gest/register', [AssuranceGestController::class, 'register']);
     Route::put('/assurance-gestupdate/{id_user}', [AssuranceGestController::class, 'updateProfile']);
     Route::post('/assurance-gestupdate/{id_user}', [AssuranceGestController::class, 'updateProfile']);
@@ -139,6 +141,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Route pour update un gestionnaire d'entreprise
     Route::put('/entreprise-gestupdate/{id_user}', [EntrepriseGestController::class, 'updateProfile']);
     Route::post('/entreprise-gestupdate/{id_user}', [EntrepriseGestController::class, 'updateProfile']);
+    Route::get('/entreprise-gest', [EntrepriseGestController::class, 'index']);
 
 
     // afficher un gestionnaire
@@ -262,7 +265,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware(['auth:sanctum'])->group(function () {
 
 
-    Route::post('/transactions', [TransactionController::class, 'operation']);
+    Route::get('/transaction', [TransactionController::class, 'index']);
     //Route::post('/depot', [TransactionController::class, 'effectuerTransaction']);
 
 
@@ -310,6 +313,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // afficher  un gestionnaire
 
         Route::get('/show/{id_user}', [PartenaireShopGestController::class, 'showGest']);
+        Route::get('/', [PartenaireShopGestController::class, 'index']);
     });
 });
 

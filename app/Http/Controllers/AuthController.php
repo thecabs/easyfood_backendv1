@@ -144,7 +144,7 @@ class AuthController extends Controller
                 $user =  User::where('id_user', $user->id_user)
                     ->where('role', 'shop_gest')
                     ->with([
-                        'partenaireShop' => function ($query) {
+                        'shop' => function ($query) {
                             $query->select('id_shop', 'nom', 'adresse', 'ville', 'quartier', 'id_gestionnaire', 'logo');
                         },
                         'compte'
@@ -169,12 +169,12 @@ class AuthController extends Controller
             }
             if ($user->role == 'caissiere') {
                 $user = User::where('role', 'caissiere')
-                    ->with('partenaireShop')
+                    ->with('shop')
                     ->find($user->id_user);
             }
             if ($user->role == 'admin') {
                 $user = User::where('role', 'admin')
-                    ->with('partenaireShop')
+                    ->with('shop')
                     ->find($user->id_user);
             }
 
@@ -241,7 +241,7 @@ class AuthController extends Controller
             $currentUser =  User::where('id_user', $currentUser->id_user)
                 ->where('role', 'shop_gest')
                 ->with([
-                    'partenaireShop' => function ($query) {
+                    'shop' => function ($query) {
                         $query->select('id_shop', 'nom', 'adresse', 'ville', 'quartier', 'id_gestionnaire', 'logo');
                     },
                     'compte'
@@ -266,7 +266,7 @@ class AuthController extends Controller
         }
         if ($currentUser->role == 'caissiere') {
             $currentUser = User::where('role', 'caissiere')
-                ->with('partenaireShop')
+                ->with('shop')
                 ->find($currentUser->id_user);
         }
         if ($currentUser->role == 'admin') {

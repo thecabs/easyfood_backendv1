@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id('id_demande');
             $table->unsignedBigInteger('id_emetteur')->nullable();
             $table->unsignedBigInteger('id_destinataire')->nullable();
-            $table->unsignedBigInteger('view')->default(0);
             $table->decimal('montant',20,2);
             $table->text('motif');
             $table->enum('role', ['admin', 'employe', 'entreprise_gest'])->default('admin');

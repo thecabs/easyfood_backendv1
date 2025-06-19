@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Otp;
+use App\Models\Roles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
@@ -136,7 +137,21 @@ class UserController extends Controller
             'message' => 'Une erreur est survenue lors de la suppression de l\'utilisateur.',
         ], 500);
     }
-}
+}   
+    public function getGestShop(){
+        return response()->json([
+            'status' => 'success',
+            'data' => User::where('role', Roles::Shop->value)->get(),
+            'message' => 'gestionnaires shops récupérés avec succès.'
+        ]);
+    }
+    public function getGestEntreprise(){
+        return response()->json([
+            'status' => 'success',
+            'data' => User::where('role', Roles::Entreprise->value)->get(),
+            'message' => 'gestionnaires entreprises récupérés avec succès.'
+        ]);
+    }
 
     
 }

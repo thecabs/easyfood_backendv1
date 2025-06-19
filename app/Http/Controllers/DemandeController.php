@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use Exception;
 use App\Models\Roles;
+use App\Models\Compte;
 use App\Models\Demande;
 use App\Models\VerifRole;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use App\Models\Roles_demande;
 use App\Models\Statuts_demande;
+use App\Models\TypeTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class DemandeController extends Controller
 {
@@ -21,13 +25,11 @@ class DemandeController extends Controller
     {
         $user = Auth::user();
         $verifRole = new VerifRole();
-        if($verifRole->isAdmin()){
-            $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.partenaireShop','emetteur','images')->get();
- 
+        if ($verifRole->isAdmin()) {
+            $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
         }
-        if($verifRole->isShop()){
-            $demandes = Demande::where('id_destinataire', $user->id_user)->with('destinataire.partenaireShop','emetteur','images')->get();
-
+        if ($verifRole->isShop()) {
+            $demandes = Demande::where('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
         }
         // if ($verifRole->isAdmin() or $verifRole->isShop() or $verifRole->isEntreprise() or $verifRole->isEmploye()) {
         //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->get();
@@ -104,7 +106,7 @@ class DemandeController extends Controller
 
             $demande->load(['emetteur', 'destinataire', 'images']);
             if ($verifRole->isAdmin()) {
-                $demande->load(['emetteur', 'destinataire.partenaireShop', 'images']);
+                $demande->load(['emetteur', 'destinataire.shop', 'images']);
             }
             if ($verifRole->isEntreprise()) {
                 $demande->load(['emetteur', 'destinataire']);
@@ -166,10 +168,11 @@ class DemandeController extends Controller
 
 
     /**
-     * Accorder une demande.
+     * Accorder une demande de credit.
      */
-    public function accorder( $id)
+    public function accorder(Request $request,$id)
     {
+        $validated = $request->validate(['pin'=>['required','max:4']]);
         $user = Auth::user();
         $verifRole = new VerifRole();
         if (!$verifRole->isAdmin() and !$verifRole->isEntreprise() and !$verifRole->isShop()) {
@@ -183,22 +186,72 @@ class DemandeController extends Controller
 
         try {
             //recuperer la demande
-            $demande = Demande::where('id_demande', $id)->where('id_destinataire', $user->id_user)->first();
+            $demande = Demande::where('id_demande', $id)->where('id_destinataire', $user->id_user)->with(['emetteur.compte', 'destinataire.compte'])->first();
 
             if ($demande) {
-
+                // verification du statut de la demande
+                if (($verifRole->isShop() || $verifRole->isAdmin()) && $demande->statut != Statuts_demande::En_attente->value) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'le statut de cette demande empeche la transaction!'
+                    ], 409);
+                } else {
+                    if ($verifRole->isEntreprise() && $demande->statut != Statuts_demande::Valide->value) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'le statut de cette demande empeche la transaction!'
+                        ], 409);
+                    }
+                }
+                //mettre a jour le statut
                 $demande->statut = Statuts_demande::Accorde->value;
+
+                //type de transaction
+                if($verifRole->isAdmin()){
+                    $type = TypeTransaction::RECHARGEENTREPRISE;
+                }
+                if($verifRole->isShop()){
+                    $type = TypeTransaction::RECHARGEADMIN;
+                }
+                if($verifRole->isEntreprise()){
+                    $type = TypeTransaction::RECHARGEEMPLOYE;
+                }
+                //creer la transaction
+                $transaction = Transaction::create([
+                    'id_compte_emetteur' => $demande->destinataire->compte->id_compte,
+                    'id_compte_destinataire' => $demande->emetteur->compte->id_compte,
+                    'montant' => $demande->montant,
+                    'id_demande' => $demande->id_demande,
+                    'type' => TypeTransaction::RECHARGEADMIN->value,
+                ]);
+
+                //recuperer compte destinataire
+                // NB: le destinataire de la transaction est l'emetteur de la demande
+                $compteDest = Compte::where('id_compte', $demande->emetteur->compte->id_compte)->first();
+
+                if ($compteDest) {
+                    if(Hash::check($validated['pin'], $demande->destinataire->compte->pin)){
+                        // mettre a jour le solde du compte destinataire
+                        $compteDest->solde += $demande->montant;
+                        $compteDest->save();
+                    }else{
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'pin incorrect!'
+                        ], 422);
+                    }
+                } else {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'le compte destinataire n\'hexiste pas!'
+                    ], 403);
+                }
+
 
                 //enregistrer les modifications
                 $demande->save();
 
-                if ($verifRole->isAdmin()) {
-                    $demande->load('emetteur', 'destinataire.entreprise','images');
-                } else if ($verifRole->isShop())  {
-                    $demande->load('emetteur', 'destinataire.partenaireShop','images');
-                }else{
-                    $demande->load('emetteur', 'destinataire','images');
-                }
+                $demande->load('transaction.compteDestinataire');
             } else {
                 return response()->json([
                     'status' => 'error',
@@ -208,7 +261,12 @@ class DemandeController extends Controller
             DB::commit();
             return response()->json([
                 'status' => 'success',
-                'data' => $demande,
+                'data' => [
+                    "id_demande" => $demande->id_demande,
+                    "statut" => $demande->statut,
+                    "updated_at" => $demande->updated_at,
+                    "transaction" => $demande->transaction,
+                ],
                 'message' => 'demande accordée.',
             ], 200);
         } catch (Exception $e) {
@@ -253,13 +311,6 @@ class DemandeController extends Controller
                 //enregistrer les modifications
                 $demande->save();
 
-                if ($verifRole->isAdmin()) {
-                    $demande->load('emetteur', 'destinataire.entreprise','images');
-                } else if($verifRole->isShop()){
-                    $demande->load('emetteur', 'destinataire.partenaireShop','images');
-                }else{
-                    $demande->load('emetteur', 'destinataire','images');
-                }
             } else {
                 return response()->json([
                     'status' => 'error',
@@ -269,7 +320,11 @@ class DemandeController extends Controller
             DB::commit();
             return response()->json([
                 'status' => 'success',
-                'data' => $demande,
+                'data' => [
+                    "id_demande" => $demande->id_demande,
+                    "statut" => $demande->statut,
+                    "updated_at" => $demande->updated_at,
+                ],
                 'message' => 'demande rejetée.',
             ], 200);
         } catch (Exception $e) {
@@ -302,12 +357,6 @@ class DemandeController extends Controller
 
                 //enregistrer les modifications
                 $demande->save();
-
-                if ($verifRole->isAdmin()) {
-                    $demande->load('emetteur', 'destinataire.entreprise','images');
-                } else {
-                    $demande->load('emetteur', 'destinataire','images');
-                }
             } else {
                 return response()->json([
                     'status' => 'error',
@@ -317,7 +366,11 @@ class DemandeController extends Controller
             DB::commit();
             return response()->json([
                 'status' => 'success',
-                'data' => $demande,
+                'data' => [
+                    "id_demande" => $demande->id_demande,
+                    "statut" => $demande->statut,
+                    "updated_at" => $demande->updated_at,
+                ],
                 'message' => 'demande annulée.',
             ], 200);
         } catch (Exception $e) {
@@ -339,13 +392,13 @@ class DemandeController extends Controller
     {
         $user = Auth::user();
 
-        try{
+        try {
             DB::beginTransaction();
             //recuperer la demande
             $demande = Demande::where('id_demande', $id)->where('id_emetteur', $user->id_user)->with('images')->first();
 
             if ($demande) {
-                foreach($demande->images as $image){
+                foreach ($demande->images as $image) {
                     unlink($image->url);
                 }
                 $demande->delete();
@@ -355,14 +408,17 @@ class DemandeController extends Controller
                     'message' => 'Cette demande n\'hexiste pas!'
                 ], 403);
             }
-            
+
             return response()->json([
                 'status' => 'success',
-                'data' => $demande,
+                'data' => [
+                    "id_demande" => $demande->id_demande,
+                    "statut" => $demande->statut,
+                    "updated_at" => $demande->updated_at,
+                ],
                 'message' => 'Demande supprimée avec succès.'
             ]);
-
-        }catch (Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
 
             return response()->json([

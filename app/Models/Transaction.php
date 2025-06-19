@@ -5,35 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Transaction extends Model
+class transaction extends Model
 {
     use HasFactory;
 
-    protected $table = 'transactions'; // S'assurer que le nom de la table est correct
-
-    protected $primaryKey = 'id'; // Correspondance avec la migration
-
     protected $fillable = [
-        'numero_compte_src',
-        'numero_compte_dest',
+        'id_compte_emetteur',
+        'id_compte_destinataire',
+        'id_demande',
         'montant',
-        'date',
-        'type',
+        'type'
     ];
 
-    /**
-     * Relation avec le compte source.
-     */
-    public function compteSource()
-    {
-        return $this->belongsTo(Compte::class, 'numero_compte_src', 'numero_compte');
+    public function compteEmetteur(){
+        return $this->belongsTo(Compte::class,'id_compte_emetteur', 'id_compte');
     }
 
-    /**
-     * Relation avec le compte destination.
-     */
-    public function compteDestination()
-    {
-        return $this->belongsTo(Compte::class, 'numero_compte_dest', 'numero_compte');
+    public function compteDestinataire(){
+        return $this->belongsTo(Compte::class, 'id_compte_destinataire', 'id_compte');
+    }
+
+    public function demande(){
+        return $this->belongsTo(Demande::class, 'id_demande');
     }
 }

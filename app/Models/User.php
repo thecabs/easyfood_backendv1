@@ -46,7 +46,7 @@ class User extends Authenticatable
     }
 
     // Relation avec le partenaire shop (pour les caissières)
-    public function partenaireShop()
+    public function shop()
     {
         return $this->belongsTo(PartenaireShop::class, 'id_shop');
     }

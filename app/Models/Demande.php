@@ -33,4 +33,8 @@ class Demande extends Model
     public function images(){
         return $this->hasMany(Images_demande::class,'id_demande','id_demande');
     }
+
+    public function transaction(){
+        return $this->hasOne(Transaction::class,'id_demande','id_demande');
+    }
 }

@@ -10,6 +10,9 @@ class VerifRole {
     public function isShop():bool{
         return Auth::user()->role == Roles::Shop->value;
     }
+    public function isAssurance():bool{
+        return Auth::user()->role == Roles::Assurance->value;
+    }
     public function isEntreprise():bool{
         return Auth::user()->role == Roles::Entreprise->value;
     }

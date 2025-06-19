@@ -3,14 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Roles;
 use App\Models\Compte;
 use App\Models\Entreprise;
+use App\Models\VerifRole;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class EntrepriseGestController extends Controller
 {
@@ -295,6 +297,23 @@ class EntrepriseGestController extends Controller
                 'message' => 'Erreur lors de la mise à jour.',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+    public function index()
+    {
+        $verifRole = new VerifRole();
+        if($verifRole->isAdmin() OR $verifRole->isEntreprise() Or $verifRole->isEmploye()){
+            return response()->json([
+                'status' => 'success',
+                'data' => User::select('id_user','nom','ville','quartier','tel','email','id_entreprise','photo_profil')->where('role', Roles::Entreprise->value)->with('entreprise:id_entreprise,nom,ville,quartier')->get(),
+                'message' => 'gestionnaires entreprise récupérés avec succès.'
+            ],200);
+        }else{
+            return response()->json([
+                'status' => 'error',
+                'message' => 'vous ne pouvez pas éffectuer cette action.'
+            ]);
+
         }
     }
 }

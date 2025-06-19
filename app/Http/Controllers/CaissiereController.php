@@ -24,9 +24,9 @@ class CaissiereController extends Controller
     
         // Vérification du rôle de l'utilisateur
         if ($currentUser->role === 'superadmin' OR $currentUser->role === 'admin') {
-            $caissieres = User::where('role', 'caissiere')->with(['partenaireShop'])->get();
+            $caissieres = User::where('role', 'caissiere')->with(['shop'])->get();
         } elseif ($currentUser->role === 'shop_gest') {
-            $caissieres = User::where('role', 'caissiere')->where('id_shop', $currentUser->id_shop)->with(['partenaireShop'])->get();
+            $caissieres = User::where('role', 'caissiere')->where('id_shop', $currentUser->id_shop)->with(['shop'])->get();
         } else {
             return response()->json([
                 'status' => 'error',
@@ -36,8 +36,8 @@ class CaissiereController extends Controller
     
         // Supprimer les champs `id_entreprise` et `id_assurance` avant de retourner la réponse
         $caissieres = $caissieres->map(function ($caissiere) {
-            $caissiere->shop = $caissiere->partenaireShop;
-            unset($caissiere->id_entreprise, $caissiere->id_assurance,$caissiere->partenaireShop, $caissier->id_partenaire_shop);
+            $caissiere->shop = $caissiere->shop;
+            unset($caissiere->id_entreprise, $caissiere->id_assurance,$caissiere->shop, $caissier->id_partenaire_shop);
             return $caissiere;
         });
     
@@ -132,7 +132,7 @@ class CaissiereController extends Controller
 
             DB::commit();
              // Charger la relation shop pour renvoyer le shop avec son gestionnaire associée
-             $user->load('partenaireShop');
+             $user->load('shop');
             return response()->json([
                 'status' => 'success',
                 'message' => 'La caissière a été créée avec succès, un compte bancaire a été généré et un email contenant les informations a été envoyé.',
@@ -166,9 +166,9 @@ class CaissiereController extends Controller
             ], 403);
         }
     
-        // On recherche l'utilisateur avec le rôle 'caissiere' et on charge la relation partenaireShop
+        // On recherche l'utilisateur avec le rôle 'caissiere' et on charge la relation shop
         $user = User::where('role', 'caissiere')
-            ->with('partenaireShop')
+            ->with('shop')
             ->find($id_user);
     
         if (!$user) {
@@ -179,7 +179,7 @@ class CaissiereController extends Controller
         }
     
         // Récupération du nom du shop s'il existe
-       // $shopName = $user->partenaireShop ? $user->partenaireShop->nom : null;
+       // $shopName = $user->shop ? $user->shop->nom : null;
     
         return response()->json([
             'status' => 'success',
@@ -214,7 +214,7 @@ class CaissiereController extends Controller
             $user = User::where('role', 'caissiere')->findOrFail($id_user);
             $user->update($validator);
             // Charger la relation shop pour renvoyer le shop avec son gestionnaire associée
-            $user->load('partenaireShop');
+            $user->load('shop');
             return response()->json([
                 'status' => 'success',
                 'message' => 'Caissière mise à jour avec succès.',
