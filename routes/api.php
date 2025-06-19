@@ -242,7 +242,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/{id}', [DemandeController::class, 'show']);
     });
 });
-// Route::post('demandes/fonds', [DemandeController::class, 'storeFonds']);
+// Route::post('demandes/fonds', [DemandeController::class, 'storesonds']);
 // Route::post('demandes/fonds/{id}/valider', [DemandeController::class, 'validerFonds']);
 // Route::post('demandes/fonds/{id}/refuser', [DemandeController::class, 'refuserFonds']);
 
