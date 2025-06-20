@@ -69,7 +69,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/demande/{id_demande}', [AdminController::class, 'updateDemand']);
         Route::delete('/demande/{id_demande}', [AdminController::class, 'deleteDemand']);
         Route::put('/update/{id_user}', [AdminController::class, 'updateProfile']);
-        Route::get('/show/{id_user}', [AdminController::class, 'show']);
+        Route::get('/show', [AdminController::class, 'show']);
         Route::get('/', [AdminController::class, 'index']);
         Route::delete('/delete/{id_user}', [AdminController::class, 'deleteUser']);
     });
@@ -237,7 +237,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('demande')->group(function () {
         //envoyer une demande
         Route::post('/', [DemandeController::class, 'store']);
+        Route::post('/admin', [DemandeController::class, 'storeAdmin']);
         Route::put('annuler/{id}', [DemandeController::class, 'annuler']);
+        Route::put('valider/{id}', [DemandeController::class, 'valider']);
         Route::put('/accorder/{id}', [DemandeController::class, 'accorder']);
         Route::put('/refuser/{id}', [DemandeController::class, 'refuser']);
         Route::delete('destroy/{id}', [DemandeController::class, 'destroy']);

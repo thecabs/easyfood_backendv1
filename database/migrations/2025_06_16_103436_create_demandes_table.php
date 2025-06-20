@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id_destinataire')->nullable();
             $table->decimal('montant',20,2);
             $table->text('motif');
-            $table->enum('role', ['admin', 'employe', 'entreprise_gest'])->default('admin');
+            $table->enum('role', ['admin', 'employe', 'entreprise_gest','shop_gest'])->default('admin');
             $table->enum('statut', ['validé', 'en attente', 'accordé', 'refusé','annulé'])->default('en attente');
             $table->timestamps();
 

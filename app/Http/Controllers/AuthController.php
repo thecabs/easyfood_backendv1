@@ -172,6 +172,11 @@ class AuthController extends Controller
                     ->with('shop')
                     ->find($user->id_user);
             }
+            if ($user->role == 'employe') {
+                $user = User::where('role', 'employe')
+                    ->with('entreprise')
+                    ->find($user->id_user);
+            }
             if ($user->role == 'admin') {
                 $user = User::where('role', 'admin')
                     ->with('shop')
@@ -248,6 +253,17 @@ class AuthController extends Controller
                 ])
                 ->first();
         }
+        if ($currentUser->role == 'employe') {
+            $currentUser =  User::where('id_user', $currentUser->id_user)
+                ->where('role', 'employe')
+                ->with([
+                    'entreprise' => function ($query) {
+                        $query->select('id_entreprise', 'nom', 'adresse', 'ville', 'quartier', 'id_gestionnaire', 'logo');
+                    },
+                    'compte'
+                ])
+                ->first();
+        }
         if ($currentUser->role == 'entreprise_gest') {
             $currentUser =  User::where('id_user', $currentUser->id_user)
                 ->where('role', 'entreprise_gest')
@@ -275,10 +291,7 @@ class AuthController extends Controller
             ->find($currentUser->id_user);
         }
         if ($currentUser->role == 'employe') {
-            $currentUser = User::where('role', 'employe')
-            ->with(['entreprise' => function ($query) {
-                $query->select('id_entreprise', 'nom', 'secteur_activite', 'adresse', 'ville', 'quartier', 'id_gestionnaire', 'id_assurance', 'logo');
-            }]);
+            $currentUser = User::where('role', 'employe')->with('entreprise')->find($currentUser->id_user);
         }
 
         return response()->json([

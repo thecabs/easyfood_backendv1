@@ -80,9 +80,9 @@ class AdminController extends Controller
     /**
      * Recuperer l'admin
      */
-    public function show($id)
+    public function show()
     {
-        $admin = User::find($id);
+        $admin = User::where('role',Roles::Admin)->first();
         if ($admin) {
             return response()->json([
                 "data" => $admin,
