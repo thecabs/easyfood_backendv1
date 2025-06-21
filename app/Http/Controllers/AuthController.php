@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -199,6 +200,67 @@ class AuthController extends Controller
             ], 500);
         }
     }
+    // modifier le pin
+
+    public function update_pin(Request $request, $id_user)
+    {
+        // Validate input
+        $validator = $request->validate([
+            'ancien_pin' => 'required|min:4',
+            'nouveau_pin' => 'required|min:4',
+            'confirmer_pin' => 'required|min:4',
+        ]);
+        $nouveauPin =  $validator['nouveau_pin'];
+        $ancienPin =  $validator['ancien_pin'];
+        DB::beginTransaction();
+
+
+        try {
+            $user = User::find($id_user);
+            // verification de l'existance de l'utilisateur
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'cet utilisateur n\'existe pas!',
+                ], 403);
+            }
+            // recuperation du compte
+            $compte = $user->compte;
+
+            // verification de l'existance du compte
+            if (!$compte) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'ce compte n\'existe pas!',
+                ], 403);
+            }
+
+            //verification de l'ancien pin
+            if (!Hash::check($ancienPin, $compte->pin)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Ancien pin incorrect.',
+                ], 422);
+            }
+
+            $compte->pin = Hash::make($nouveauPin);
+
+            $compte->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Modification du pin réussie.',
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     /**
      * Logout API.
@@ -287,17 +349,20 @@ class AuthController extends Controller
         }
         if ($currentUser->role == 'admin') {
             $currentUser = User::where('role', 'admin')
-            ->select('id_user','nom','email','tel','ville','quartier','role','photo_profil')
-            ->find($currentUser->id_user);
+                ->select('id_user', 'nom', 'email', 'tel', 'ville', 'quartier', 'role', 'photo_profil')
+                ->find($currentUser->id_user);
         }
         if ($currentUser->role == 'employe') {
             $currentUser = User::where('role', 'employe')->with('entreprise')->find($currentUser->id_user);
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Utilisateur recupéré avec succès.',
-            'user' => $currentUser]
-            , 200);
+        return response()->json(
+            [
+                'status' => 'success',
+                'message' => 'Utilisateur recupéré avec succès.',
+                'user' => $currentUser
+            ],
+            200
+        );
     }
 }

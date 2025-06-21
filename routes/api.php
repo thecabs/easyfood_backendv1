@@ -408,7 +408,8 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('user')->group(function () {
-        Route::get('/getuser', [AuthController::class, 'getUser']); // Créer une catégorie
+        Route::get('/getuser', [AuthController::class, 'getUser']); // récupérer l'utilisateur connecté
+        Route::put('/update-pin/{id_user}', [AuthController::class, 'update_pin']); // modifier le pin
     });
 });
 
