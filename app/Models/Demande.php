@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\User ;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -36,5 +37,10 @@ class Demande extends Model
 
     public function transaction(){
         return $this->hasOne(Transaction::class,'id_demande','id_demande');
+    }
+
+    public static function getAll($id_user): Builder{
+        return self::query()->where('id_emetteur', $id_user)->orWhere('id_destinataire', $id_user)->with('destinataire.shop','destinataire.entreprise', 'emetteur', 'images');
+        
     }
 }

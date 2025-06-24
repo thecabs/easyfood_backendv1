@@ -28,27 +28,27 @@ class DemandeController extends Controller
         $user = Auth::user();
         $verifRole = new VerifRole();
 
-        if ($verifRole->isAdmin()) {
-                $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
+        // if ($verifRole->isAdmin()) {
+        //         $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
             
-        }
-        if ($verifRole->isShop()) {
-            $demandes = Demande::where('id_destinataire', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
-        }
-        if ($verifRole->isEmploye()) {
-            $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with(['destinataire' => function ($query) {
-                $query->select('id_user', 'nom', 'tel', 'email', 'role', 'id_entreprise', 'photo_profil')->with('entreprise:id_entreprise,nom,secteur_activite,ville,quartier,adresse');
-            }, 'emetteur:id_user,nom,email,ville,tel,role,photo_profil'])->get();
-        }
-        if ($verifRole->isEntreprise()) {
-            $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with(['destinataire' => function ($query) {
-                $query->select('id_user', 'nom', 'tel', 'email', 'role', 'id_entreprise', 'photo_profil')->with('entreprise:id_entreprise,nom,secteur_activite,ville,quartier,adresse');
-            }, 'emetteur:id_user,nom,email,ville,tel,role,photo_profil'])->get();
-        }
+        // }
+        // if ($verifRole->isShop()) {
+        //     $demandes = Demande::where('id_destinataire', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
+        // }
+        // if ($verifRole->isEmploye()) {
+        //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with(['destinataire' => function ($query) {
+        //         $query->select('id_user', 'nom', 'tel', 'email', 'role', 'id_entreprise', 'photo_profil')->with('entreprise:id_entreprise,nom,secteur_activite,ville,quartier,adresse');
+        //     }, 'emetteur:id_user,nom,email,ville,tel,role,photo_profil'])->get();
+        // }
+        // if ($verifRole->isEntreprise()) {
+        //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with(['destinataire' => function ($query) {
+        //         $query->select('id_user', 'nom', 'tel', 'email', 'role', 'id_entreprise', 'photo_profil')->with('entreprise:id_entreprise,nom,secteur_activite,ville,quartier,adresse');
+        //     }, 'emetteur:id_user,nom,email,ville,tel,role,photo_profil'])->get();
+        // }
         // if ($verifRole->isAdmin() or $verifRole->isShop() or $verifRole->isEntreprise() or $verifRole->isEmploye()) {
         //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->get();
         // }
-
+        $demandes = Demande::getAll($user->id_user)->get();
         return response()->json([
             'status' => 'success',
             'data' => $demandes,

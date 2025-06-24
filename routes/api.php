@@ -24,6 +24,7 @@ use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PartenaireShopGestController;
 use App\Http\Controllers\AssuranceGestController;
+use App\Http\Controllers\dashboardCredit;
 use App\Http\Controllers\DemandeController;
 use App\Http\Controllers\EntrepriseGestController;
 use App\Http\Controllers\getUserConnected;
@@ -429,4 +430,11 @@ Route::middleware('auth:sanctum')->post('/users/search-by-role', [UserController
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/facture/create', [FactureController::class, 'createInvoice']);
     Route::post('/transaction/confirm', [TransactionController::class, 'confirmTransaction']);
+});
+
+// Dahsboards
+Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('dashboard')->group(function(){
+        Route::get('credit',[dashboardCredit::class, 'index']);
+    });
 });
