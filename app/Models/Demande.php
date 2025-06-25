@@ -40,7 +40,7 @@ class Demande extends Model
     }
 
     public static function getAll($id_user): Builder{
-        return self::query()->where('id_emetteur', $id_user)->orWhere('id_destinataire', $id_user)->with('destinataire.shop','destinataire.entreprise', 'emetteur', 'images');
+        return self::query()->where('id_emetteur', $id_user)->orWhere('id_destinataire', $id_user)->with('destinataire.shop','destinataire.entreprise','emetteur.entreprise', 'images');
         
     }
 }
