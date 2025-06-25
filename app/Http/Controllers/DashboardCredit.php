@@ -42,7 +42,11 @@ class dashboardCredit extends Controller
             'expenses' => $expenses,
             'demandes' => $demandes,
             'compte' => [
-                'id_compte' => $compte->id_compte
+                'id_compte' => $compte->id_compte,
+                'solde' => $compte->solde,
+                'created_at' => $compte->created_at,
+                'id_user' => $compte->id_user,
+                'numero_compte' => $compte->numero_compte,
             ],
         ],200);
     }

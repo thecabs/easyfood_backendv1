@@ -420,6 +420,7 @@ class DemandeController extends Controller
                 'data' => [
                     "id_demande" => $demande->id_demande,
                     "statut" => $demande->statut,
+                    "motif" => $demande->motif,
                     "updated_at" => $demande->updated_at,
                     "transaction" => $demande->transaction,
                 ],

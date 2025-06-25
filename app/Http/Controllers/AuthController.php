@@ -348,9 +348,9 @@ class AuthController extends Controller
                 ->find($currentUser->id_user);
         }
         if ($currentUser->role == 'admin') {
-            $currentUser = User::where('role', 'admin')
-                ->select('id_user', 'nom', 'email', 'tel', 'ville', 'quartier', 'role', 'photo_profil')
-                ->find($currentUser->id_user);
+            // $currentUser = User::where('role', 'admin')
+            //     ->select('id_user', 'nom', 'email', 'tel', 'ville', 'quartier', 'role', 'photo_profil')
+            //     ->find($currentUser->id_user);
         }
         if ($currentUser->role == 'employe') {
             $currentUser = User::where('role', 'employe')->with('entreprise')->find($currentUser->id_user);
@@ -360,7 +360,21 @@ class AuthController extends Controller
             [
                 'status' => 'success',
                 'message' => 'Utilisateur recupéré avec succès.',
-                'user' => $currentUser
+                'user' => [
+                    'id_user' => $currentUser->id_user,
+                    'nom' => $currentUser->nom,
+                    'email' => $currentUser->email,
+                    'tel' => $currentUser->tel,
+                    'quartier' => $currentUser->quartier,
+                    'ville' => $currentUser->ville,
+                    'role' => $currentUser->role,
+                    'statut' => $currentUser->statut,
+                    'photo_profil' => $currentUser->photo_profil,
+                    'shop' => $currentUser->shop,
+                    'assurance' => $currentUser->assurance,
+                    'compte' => $currentUser->compte,
+                    'entreprise' => $currentUser->entreprise,
+                ]
             ],
             200
         );
