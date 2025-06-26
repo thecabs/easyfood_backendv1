@@ -24,9 +24,9 @@ class dashboardCredit extends Controller
         //tout
         $transactions = Transaction::getAll($user->id_user)->latest()->take(5)->get();
         //entrées
-        $incomes = Transaction::incomes($user->id_user)->latest()->take(5)->get();
+        $incomes = Transaction::incomes($user->id_user)->get();
         //sorties
-        $expenses = Transaction::expenses($user->id_user)->latest()->take(5)->get();
+        $expenses = Transaction::expenses($user->id_user)->get();
 
         // recuperer les demandes
        $demandes = Demande::getAll($user->id_user)->latest()->take(5)->get();

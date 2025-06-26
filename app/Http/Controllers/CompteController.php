@@ -54,7 +54,7 @@ class CompteController extends Controller
     public function updatePin(Request $request, $numeroCompte)
     {
         $currentUser = Auth::user();
-        if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest','employe','admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest','employe','admin','shop_gest'])) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
         $request->validate([

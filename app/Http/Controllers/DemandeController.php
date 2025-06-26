@@ -16,6 +16,7 @@ use App\Models\TypeTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules\Enum;
 
 class DemandeController extends Controller
@@ -114,6 +115,8 @@ class DemandeController extends Controller
                     ]);
                 }
             }
+            //envoi de l'email
+            Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandSent($demande));
 
             $demande->load(['emetteur', 'destinataire.shop', 'images']);
 
@@ -221,14 +224,12 @@ class DemandeController extends Controller
             //enregistrement de la demande
             $demande->save();
 
-            if ($verifRole->isEntreprise()) {
-                $demande->load(['emetteur', 'destinataire']);
-            }
-            if ($verifRole->isEmploye()) {
-                $demande->load(['emetteur', 'destinataire']);
-            }
+            $demande->load(['emetteur', 'destinataire']);
 
-            //enregistrement de la transaction 
+            //envoi de l'email
+            Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandSent($demande));
+
+            //enregistrement de la demande 
             DB::commit();
 
             return response()->json([
@@ -280,6 +281,25 @@ class DemandeController extends Controller
         }
     }
 
+    //tester l'envoi de l'email
+    public function sendEmail(){
+        $user = Auth::user();
+        $demande = Demande::where('id_emetteur', $user->id_user)->first();
+        try{
+            echo json_encode($demande);
+            Mail::to('fredricka703@phugruphy.com')->send(new \App\Mail\DemandRefused($demande));
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Email envoyé avec succès.',
+            ], 200);
+        }catch(Exception $e){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Une erreur est survenue lors de l\'envoi de l\'email: '.$e->getMessage(),
+            ], 500);
+        }
+        
+    }
 
     /**
      * Accorder une demande de credit.
@@ -414,6 +434,10 @@ class DemandeController extends Controller
                     'message' => 'Cette demande n\'hexiste pas!'
                 ], 403);
             }
+            //envoi des email
+            Mail::to($demande->emetteur->email)->send(new \App\Mail\DemandAgree($demande));
+            Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandAgreeSender($demande));
+
             DB::commit();
             return response()->json([
                 'status' => 'success',
@@ -473,12 +497,14 @@ class DemandeController extends Controller
                     'message' => 'Cette demande n\'hexiste pas!'
                 ], 403);
             }
+            Mail::to($demande->emetteur->email)->send(new \App\Mail\DemandRefused($demande));
             DB::commit();
             return response()->json([
                 'status' => 'success',
                 'data' => [
                     "id_demande" => $demande->id_demande,
                     "statut" => $demande->statut,
+                    "motif" => $demande->motif,
                     "updated_at" => $demande->updated_at,
                 ],
                 'message' => 'demande rejetée.',

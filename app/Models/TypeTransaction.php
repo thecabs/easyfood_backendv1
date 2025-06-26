@@ -6,5 +6,6 @@ enum TypeTransaction:string{
     case RECHARGEADMIN = "recharge-admin";
     case RECHARGEENTREPRISE = "recharge-entreprise";
     case RECHARGEEMPLOYE= "recharge-employe";
+    case RECHARGETRAVAILLEUR= "recharge-travailleur";
     case ACHAT= "achat";
 }

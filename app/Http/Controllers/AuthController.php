@@ -206,9 +206,9 @@ class AuthController extends Controller
     {
         // Validate input
         $validator = $request->validate([
-            'ancien_pin' => 'required|min:4',
-            'nouveau_pin' => 'required|min:4',
-            'confirmer_pin' => 'required|min:4',
+            'ancien_pin' => 'required|digits:4',
+            'nouveau_pin' => 'required|digits:4',
+            'confirmer_pin' => 'required|digits:4',
         ]);
         $nouveauPin =  $validator['nouveau_pin'];
         $ancienPin =  $validator['ancien_pin'];

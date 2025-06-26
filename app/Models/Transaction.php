@@ -50,12 +50,12 @@ class transaction extends Model
         })->with([
             'compteEmetteur'=>function($query){
                 $query->select('id_compte','id_user','numero_compte','solde','created_at','updated_at')->with(['user'=>function($query){
-                    $query->select('id_user','photo_profil','nom','email','tel','ville','quartier','id_shop','id_entreprise')->with(['entreprise:nom,id_entreprise,ville,quartier','shop:nom,id_shop,ville,quartier']);
+                    $query->select('id_user','photo_profil','role','nom','email','tel','ville','quartier','id_shop','id_entreprise')->with(['entreprise:nom,id_entreprise,ville,quartier','shop:nom,id_shop,ville,quartier']);
                 }]);
             },
             'compteDestinataire'=>function($query){
                 $query->select('id_compte','id_user','numero_compte','solde','created_at','updated_at')->with(['user'=>function($query){
-                    $query->select('id_user','photo_profil','nom','email','tel','ville','quartier','id_shop','id_entreprise')->with(['entreprise:nom,id_entreprise,ville,quartier','shop:nom,id_shop,ville,quartier']);
+                    $query->select('id_user','photo_profil','role','nom','email','tel','ville','quartier','id_shop','id_entreprise')->with(['entreprise:nom,id_entreprise,ville,quartier','shop:nom,id_shop,ville,quartier']);
                 }]);
             }]);
     }

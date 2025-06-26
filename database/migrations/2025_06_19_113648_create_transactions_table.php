@@ -16,13 +16,13 @@ return new class extends Migration
             $table->decimal('montant',20,2);
             $table->unsignedBigInteger('id_compte_emetteur');
             $table->unsignedBigInteger('id_compte_destinataire');
-            $table->unsignedBigInteger('id_demande');
-            $table->enum('type',['remboursement','recharge-admin','recharge-entreprise','recharge-employe','achat'])->default('recharge-admin');
+            $table->unsignedBigInteger('id_demande')->nullable();
+            $table->enum('type',['remboursement','recharge-admin','recharge-entreprise','recharge-travailleur','recharge-employe','achat'])->default('recharge-admin');
             $table->timestamps();
 
             $table->foreign('id_compte_emetteur')->references('id_compte')->on('comptes')->onDelete('cascade');
             $table->foreign('id_compte_destinataire')->references('id_compte')->on('comptes')->onDelete('cascade');
-            $table->foreign('id_demande')->references('id_demande')->on('demandes')->onDelete('cascade');
+            $table->foreign('id_demande')->references('id_demande')->on('demandes')->onDelete('set null');
 
         });
     }

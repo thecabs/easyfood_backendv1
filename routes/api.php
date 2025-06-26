@@ -236,6 +236,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('demande')->group(function () {
+        //tester l'envoi de lemail
+        Route::post('/test-email', [DemandeController::class, 'sendEmail']);
         //envoyer une demande
         Route::post('/', [DemandeController::class, 'store']);
         Route::post('/admin', [DemandeController::class, 'storeAdmin']);
@@ -269,7 +271,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 
     Route::get('/transaction', [TransactionController::class, 'index']);
-    //Route::post('/depot', [TransactionController::class, 'effectuerTransaction']);
+    Route::post('/transaction', [TransactionController::class, 'store']);
 
 
 });
@@ -410,7 +412,28 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('user')->group(function () {
         Route::get('/getuser', [AuthController::class, 'getUser']); // récupérer l'utilisateur connecté
+        Route::get('/notifications', function(Request $request) {
+            $user = $request->user();
+            return response()->json([
+                'status' => 'success',
+                'data' => $user->notifications,
+                'message' => 'Notifications récupérées avec succès!'
+            ]);
+
+        }); //recuperer les notifications
+        Route::get('/unreadnotifications', function(Request $request) {
+            $user = $request->user();
+            return response()->json([
+                'status' => 'success',
+                'data' => $user->unreadNotifications,
+                'message' => 'Notifications récupérées avec succès!'
+            ]);
+
+        }); //recuperer les notifications non lues
         Route::put('/update-pin/{id_user}', [AuthController::class, 'update_pin']); // modifier le pin
+        Route::get('/search', [UserController::class, 'search']); // tout les utilisateurs
+        Route::get('/all', [UserController::class, 'index']); // tout les utilisateurs
+        Route::get('/{id_user}', [UserController::class, 'show']); // un utilisateur
     });
 });
 
