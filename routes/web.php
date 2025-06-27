@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\TestNotif;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,3 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/test', function (){
+    return view('test.form');
+});
+Route::get('/notifications', [TestNotif::class, 'store'])->name('notifications.store');

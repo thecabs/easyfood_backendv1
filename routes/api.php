@@ -28,6 +28,7 @@ use App\Http\Controllers\dashboardCredit;
 use App\Http\Controllers\DemandeController;
 use App\Http\Controllers\EntrepriseGestController;
 use App\Http\Controllers\getUserConnected;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TravailleurController;
 use App\Models\Demande;
 use App\Models\PartenaireShop;
@@ -405,6 +406,16 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
+// notifications
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('notification')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']); //recuperer les notifications
+        Route::get('/unreadnotifications', [NotificationController::class, 'getUnRead']); //recuperer les notifications non lues
+        Route::get('/readnotifications', [NotificationController::class, 'getRead']); //recuperer les notifications lues
+        Route::put('/{id}', [NotificationController::class, 'showNotification']); //marquer comme lue
+        Route::delete('/{id}', [NotificationController::class, 'delete']); //supprimer une notification
+    });
+});
 //AUTH
 
 //login
@@ -412,30 +423,13 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('user')->group(function () {
         Route::get('/getuser', [AuthController::class, 'getUser']); // récupérer l'utilisateur connecté
-        Route::get('/notifications', function(Request $request) {
-            $user = $request->user();
-            return response()->json([
-                'status' => 'success',
-                'data' => $user->notifications,
-                'message' => 'Notifications récupérées avec succès!'
-            ]);
-
-        }); //recuperer les notifications
-        Route::get('/unreadnotifications', function(Request $request) {
-            $user = $request->user();
-            return response()->json([
-                'status' => 'success',
-                'data' => $user->unreadNotifications,
-                'message' => 'Notifications récupérées avec succès!'
-            ]);
-
-        }); //recuperer les notifications non lues
         Route::put('/update-pin/{id_user}', [AuthController::class, 'update_pin']); // modifier le pin
         Route::get('/search', [UserController::class, 'search']); // tout les utilisateurs
         Route::get('/all', [UserController::class, 'index']); // tout les utilisateurs
         Route::get('/{id_user}', [UserController::class, 'show']); // un utilisateur
     });
 });
+
 
 
 //logout

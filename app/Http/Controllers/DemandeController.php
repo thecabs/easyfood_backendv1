@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use Exception;
+use App\Models\User;
 use App\Models\Roles;
 use App\Models\Compte;
 use App\Models\Demande;
-use App\Models\Entreprise;
 use App\Models\VerifRole;
+use App\Models\Entreprise;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use App\Models\Roles_demande;
@@ -115,13 +116,15 @@ class DemandeController extends Controller
                     ]);
                 }
             }
+            
+            //enregistrement de la transaction 
+            DB::commit();
             //envoi de l'email
             Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandSent($demande));
 
-            $demande->load(['emetteur', 'destinataire.shop', 'images']);
-
-            //enregistrement de la transaction 
-            DB::commit();
+            $demande->load(['destinataire.entreprise', 'destinataire.shop', 'images','emetteur.entreprise','emetteur.shop']);
+            // envoyer une notification
+            $demande->destinataire->notify(new \App\Notifications\DemandeRecu($demande));
 
             return response()->json([
                 'status' => 'success',
@@ -224,13 +227,16 @@ class DemandeController extends Controller
             //enregistrement de la demande
             $demande->save();
 
-            $demande->load(['emetteur', 'destinataire']);
+            $demande->load(['emetteur', 'destinataire.entreprise','destinataire.shop','emetteur.entreprise','emetteur.shop']);
 
+            
+            //enregistrement de la demande 
+            DB::commit();
             //envoi de l'email
             Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandSent($demande));
 
-            //enregistrement de la demande 
-            DB::commit();
+            // envoyer une notification
+            $demande->destinataire->notify(new \App\Notifications\DemandeRecu($demande));
 
             return response()->json([
                 'status' => 'success',
@@ -360,8 +366,6 @@ class DemandeController extends Controller
                     'type' => $validated['type'],
                 ]);
 
-
-
                 //recuperer compte destinataire
                 // NB: le destinataire de la transaction est l'emetteur de la demande
                 $compteDest = Compte::where('id_compte', $demande->emetteur->compte->id_compte)->first();
@@ -427,7 +431,9 @@ class DemandeController extends Controller
                 //enregistrer les modifications
                 $demande->save();
 
-                $demande->load('transaction.compteDestinataire');
+                
+                $demande->load( 'destinataire.shop','destinataire.entreprise','transaction.compteDestinataire');
+                
             } else {
                 return response()->json([
                     'status' => 'error',
@@ -437,6 +443,8 @@ class DemandeController extends Controller
             //envoi des email
             Mail::to($demande->emetteur->email)->send(new \App\Mail\DemandAgree($demande));
             Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandAgreeSender($demande));
+            // envoyer une notification
+            $demande->emetteur->notify(new \App\Notifications\NotificationDemandeAccorde($demande));
 
             DB::commit();
             return response()->json([
@@ -497,8 +505,11 @@ class DemandeController extends Controller
                     'message' => 'Cette demande n\'hexiste pas!'
                 ], 403);
             }
-            Mail::to($demande->emetteur->email)->send(new \App\Mail\DemandRefused($demande));
             DB::commit();
+            //envoi de l'email
+            Mail::to($demande->emetteur->email)->send(new \App\Mail\DemandRefused($demande));
+            // envoyer une notification
+            $demande->emetteur->notify(new \App\Notifications\NotificationDemandeRefuse($demande));
             return response()->json([
                 'status' => 'success',
                 'data' => [

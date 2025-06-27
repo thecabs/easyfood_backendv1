@@ -3,18 +3,20 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class TransactionReçue extends Notification 
+class NotificationDemandeRefuse extends Notification
 {
     use Queueable;
-    public $transaction;
+    public $demande;
     /**
      * Create a new notification instance.
      */
-    public function __construct($transaction)
+    public function __construct($demande)
     {
-        $this->transaction = $transaction;
+        $this->demande = $demande;
     }
 
     /**
@@ -32,16 +34,14 @@ class TransactionReçue extends Notification
      */
     public function toDatabase(object $notifiable)
     {
+
         return [
-            'message' => 'Vous avez reçu '. $this->transaction->montant.' U',
-            'transaction_id' => $this->transaction->id,
-            'date' => $this->transaction->created_at,
-            'de' => $this->transaction->compteEmetteur->user->nom,
-            'type' => 'transaction',
+            'message' => 'Votre demande de  '. $this->demande->montant.' U a été refusée',
+            'demande_id' => $this->demande->id_demande,
+            'date' => $this->demande->created_at,
+            'de' => $this->demande->destinataire,
+            'type' => 'demande',
         ];
     }
-
-
-
 
 }
