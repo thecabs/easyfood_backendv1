@@ -24,9 +24,9 @@ class CaissiereController extends Controller
     
         // Vérification du rôle de l'utilisateur
         if ($currentUser->role === 'superadmin' OR $currentUser->role === 'admin') {
-            $caissieres = User::where('role', 'caissiere')->with(['partenaireShop'])->get();
+            $caissieres = User::where('role', 'caissiere')->with(['shop'])->get();
         } elseif ($currentUser->role === 'shop_gest') {
-            $caissieres = User::where('role', 'caissiere')->where('id_shop', $currentUser->id_shop)->with(['partenaireShop'])->get();
+            $caissieres = User::where('role', 'caissiere')->where('id_shop', $currentUser->id_shop)->with(['shop'])->get();
         } else {
             return response()->json([
                 'status' => 'error',
@@ -36,8 +36,8 @@ class CaissiereController extends Controller
     
         // Supprimer les champs `id_entreprise` et `id_assurance` avant de retourner la réponse
         $caissieres = $caissieres->map(function ($caissiere) {
-            $caissiere->shop = $caissiere->partenaireShop;
-            unset($caissiere->id_entreprise, $caissiere->id_assurance,$caissiere->partenaireShop, $caissier->id_partenaire_shop);
+            $caissiere->shop = $caissiere->shop;
+            unset($caissiere->id_entreprise, $caissiere->id_assurance,$caissiere->shop, $caissier->id_partenaire_shop);
             return $caissiere;
         });
     
@@ -79,6 +79,9 @@ class CaissiereController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|unique:users,email',
             'nom' => 'required|string|max:255',
+            'tel' => 'nullable|string|max:20',
+            'ville' => 'nullable|string',
+            'quartier' => 'nullable|string',
             'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);
 
@@ -104,6 +107,15 @@ class CaissiereController extends Controller
                 'role' => 'caissiere',
                 'statut' => 'actif',
             ]);
+            if (isset($request->tel)) {
+                $user['tel'] = $request->tel;
+            }
+            if (isset($request->ville)) {
+                $user['ville'] = $request->ville;
+            }
+            if (isset($request->quartier)) {
+                $user['quartier'] = $request->quartier;
+            }
 
             // Création d'un compte bancaire pour la caissière
             $defaultPin = Compte::generateDefaultPin();
@@ -119,12 +131,15 @@ class CaissiereController extends Controller
             Mail::to($user->email)->send(new \App\Mail\AccountCreatedCaissMail($user, $generatedPassword, $compte, $defaultPin));
 
             DB::commit();
-
+             // Charger la relation shop pour renvoyer le shop avec son gestionnaire associée
+             $user->load('shop');
             return response()->json([
                 'status' => 'success',
                 'message' => 'La caissière a été créée avec succès, un compte bancaire a été généré et un email contenant les informations a été envoyé.',
-                'user' => $user,
-                'compte' => $compte,
+                'data'   => [
+                    'user'=> $user,
+                    'compte'=> $compte
+                 ],
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -151,9 +166,9 @@ class CaissiereController extends Controller
             ], 403);
         }
     
-        // On recherche l'utilisateur avec le rôle 'caissiere' et on charge la relation partenaireShop
+        // On recherche l'utilisateur avec le rôle 'caissiere' et on charge la relation shop
         $user = User::where('role', 'caissiere')
-            ->with('partenaireShop')
+            ->with('shop')
             ->find($id_user);
     
         if (!$user) {
@@ -164,13 +179,11 @@ class CaissiereController extends Controller
         }
     
         // Récupération du nom du shop s'il existe
-       // $shopName = $user->partenaireShop ? $user->partenaireShop->nom : null;
+       // $shopName = $user->shop ? $user->shop->nom : null;
     
         return response()->json([
             'status' => 'success',
-            'data'   => [
-                'user'      => $user
-             ],
+            'data'   =>  $user,
         ], 200);
     }
     
@@ -179,7 +192,7 @@ class CaissiereController extends Controller
      * Mettre à jour une caissière
      */
     public function update(Request $request, $id_user)
-    {
+       {
         $currentUser = Auth::user();
 
         if (!in_array($currentUser->role, ['superadmin', 'caissiere'])) {
@@ -191,16 +204,20 @@ class CaissiereController extends Controller
 
         $validator = $request->validate([
             'id_shop' => 'nullable|exists:partenaire_shops,id_shop',
-            'email' => 'nullable|email|unique:users,email,' . $id_user,
+            'email' => 'nullable|email|unique:users,email,' . $id_user. ',id_user',
+            'tel' => 'nullable|string|max:20',
+            'ville' => 'nullable|string',
+            'quartier' => 'nullable|string',
             'nom' => 'nullable|string|max:255',
             'tel' => 'nullable|string|max:20',
             'ville' => 'nullable|string',
             'quartier' => 'nullable|string',
         ]);
-
         try {
             $user = User::where('role', 'caissiere')->findOrFail($id_user);
             $user->update($validator);
+            // Charger la relation shop pour renvoyer le shop avec son gestionnaire associée
+            $user->load('shop');
             return response()->json([
                 'status' => 'success',
                 'message' => 'Caissière mise à jour avec succès.',

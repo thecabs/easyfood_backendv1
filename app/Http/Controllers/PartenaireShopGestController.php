@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\PartenaireShop;
+use App\Models\Roles;
 use App\Models\Compte;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use App\Models\VerifRole;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\Models\PartenaireShop;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
 class PartenaireShopGestController extends Controller
@@ -32,7 +34,7 @@ class PartenaireShopGestController extends Controller
             $gestionnaire = User::where('id_user', $id_user)
                 ->where('role', 'shop_gest')
                 ->with([
-                    'partenaireShop' => function ($query) {
+                    'shop' => function ($query) {
                         $query->select('id_shop', 'nom', 'adresse', 'ville', 'quartier', 'id_gestionnaire', 'logo');
                     },
                     'compte'
@@ -59,7 +61,7 @@ class PartenaireShopGestController extends Controller
                     'photo_profil' => $gestionnaire->photo_profil, // Ajout de photo_profil
                     'role' => $gestionnaire->role,
                     'statut' => $gestionnaire->statut,
-                    'shop' => $gestionnaire->partenaireShop,
+                    'shop' => $gestionnaire->shop,
                     'compte' => $gestionnaire->compte ? [
                         'numero_compte' => $gestionnaire->compte->numero_compte,
                         'solde' => $gestionnaire->compte->solde,
@@ -220,7 +222,7 @@ class PartenaireShopGestController extends Controller
             'tel' => 'nullable|string|max:20',
             'ville' => 'nullable|string',
             'quartier' => 'nullable|string',
-            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
             'old_password' => 'nullable|required_with:password|min:8', // Ancien mot de passe requis si nouveau mot de passe
             'password' => 'nullable|string|min:8|confirmed', // Nouveau mot de passe avec confirmation
         ], [
@@ -255,7 +257,7 @@ class PartenaireShopGestController extends Controller
                     return response()->json([
                         'status' => 'error',
                         'message' => 'L\'ancien mot de passe est incorrect.',
-                    ], 400);
+                    ], 422);
                 }
 
                 // Mise à jour du mot de passe
@@ -288,7 +290,7 @@ class PartenaireShopGestController extends Controller
 
             $userToUpdate->save();
             // Charger la relation shop pour renvoyer le shop avec son gestionnaire associée
-            $userToUpdate->load('partenaireShop');
+            $userToUpdate->load('shop');
 
             DB::commit();
 
@@ -305,7 +307,7 @@ class PartenaireShopGestController extends Controller
                     'role' => $userToUpdate->role,
                     'statut' => $userToUpdate->statut,
                     'photo_profil' => $userToUpdate->photo_profil,
-                    'shop' => $userToUpdate->partenaireShop
+                    'shop' => $userToUpdate->shop
                 ],
             ], 200);
         } catch (\Exception $e) {
@@ -315,6 +317,24 @@ class PartenaireShopGestController extends Controller
                 'message' => 'Erreur lors de la mise à jour.',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    public function index()
+    {
+        $verifRole = new VerifRole();
+        if($verifRole->isAdmin() OR $verifRole->isShop() Or $verifRole->isCaissiere()){
+            return response()->json([
+                'status' => 'success',
+                'data' => User::select('id_user','nom','ville','quartier','tel','email','id_shop','photo_profil')->where('role', Roles::Shop->value)->with('shop:id_shop,nom,ville,quartier')->get(),
+                'message' => 'gestionnaires shop récupérés avec succès.'
+            ],200);
+        }else{
+            return response()->json([
+                'status' => 'error',
+                'message' => 'vous ne pouvez pas éffectuer cette action.'
+            ]);
+
         }
     }
 }

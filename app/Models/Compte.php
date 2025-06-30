@@ -24,10 +24,15 @@ class Compte extends Model
         return $this->belongsTo(User::class, 'id_user');
     }
 
-    // Relation avec le modèle Transaction
-    public function transactions()
+    // Recuperer les transaction emises
+    public function transactionsEmises()
     {
-        return $this->hasMany(Transaction::class, 'numero_compte');
+        return $this->hasMany(Transaction::class, 'id_compte_emetteur');
+    }
+    // Recuperer les transaction recue
+    public function transactionsRecues()
+    {
+        return $this->hasMany(Transaction::class, 'id_compte_destinataire');
     }
 
     // Génération d'un numéro de compte unique

@@ -221,6 +221,40 @@ class EmployeController extends Controller
     /**
      * Liste des employés.
      */
+    // public function index(Request $request)
+    // {
+    //     $currentUser = Auth::user();
+
+    //     if (!in_array($currentUser->role, ['superadmin', 'admin', 'entreprise_gest', 'assurance_gest'])) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
+    //         ], 403);
+    //     }
+
+    //     // Récupérer les employés avec leurs entreprises
+    //     $employes = User::where('role', 'employe')
+    //         ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')
+    //         ->get();
+
+    //     // Pagination manuelle
+    //     $perPage = $request->input('per_page', 10);
+    //     $currentPage = $request->input('page', 1);
+    //     $paginated = $employes->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+    //     // Construire la réponse paginée
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Liste des employés récupérée avec succès.',
+    //         'data' => $paginated,
+    //         'pagination' => [
+    //             'total' => $employes->count(),
+    //             'per_page' => $perPage,
+    //             'current_page' => $currentPage,
+    //             'last_page' => ceil($employes->count() / $perPage),
+    //         ],
+    //     ], 200);
+    // }
     public function index(Request $request)
     {
         $currentUser = Auth::user();
@@ -235,25 +269,8 @@ class EmployeController extends Controller
         // Récupérer les employés avec leurs entreprises
         $employes = User::where('role', 'employe')
             ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')
-            ->get();
-
-        // Pagination manuelle
-        $perPage = $request->input('per_page', 10);
-        $currentPage = $request->input('page', 1);
-        $paginated = $employes->slice(($currentPage - 1) * $perPage, $perPage)->values();
-
-        // Construire la réponse paginée
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Liste des employés récupérée avec succès.',
-            'data' => $paginated,
-            'pagination' => [
-                'total' => $employes->count(),
-                'per_page' => $perPage,
-                'current_page' => $currentPage,
-                'last_page' => ceil($employes->count() / $perPage),
-            ],
-        ], 200);
+            ->paginate($request->get('rows', 10));
+        return  $employes;
     }
 
 

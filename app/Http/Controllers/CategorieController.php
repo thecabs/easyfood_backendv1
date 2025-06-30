@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Categorie;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class CategorieController extends Controller
 {
@@ -16,7 +17,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere', 'employe'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -45,7 +46,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
     
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -53,7 +54,10 @@ class CategorieController extends Controller
         }
     
         $validated = $request->validate([ 
-            'libelle' => 'required|string|unique:categories,libelle|max:255',
+            'libelle' => ['required','string',Rule::unique('categories')->where(function($query){
+                $user =  Auth::user();
+                $query->where('id_shop',$user->id_shop);
+            })],
             'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);
     
@@ -80,7 +84,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
