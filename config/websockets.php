@@ -1,4 +1,5 @@
 <?php
+ 
 
 use BeyondCode\LaravelWebSockets\Dashboard\Http\Middleware\Authorize;
 
@@ -8,6 +9,7 @@ return [
      * Configuration du tableau de bord WebSockets
      */
     'dashboard' => [
+        // Vous pouvez utiliser ici un port différent si besoin (par défaut, il utilise le port défini en .env)
         'port' => env('LARAVEL_WEBSOCKETS_PORT', 6001),
     ],
 
@@ -22,7 +24,7 @@ return [
             'secret' => env('PUSHER_APP_SECRET', 'local'),
             'path' => env('PUSHER_APP_PATH', '/app'),
             'capacity' => null,
-            'enable_client_messages' => true, // ✅ Permet aux clients d'envoyer des messages
+            'enable_client_messages' => true, // Permet aux clients d'envoyer des messages
             'enable_statistics' => true,
         ],
     ],
@@ -34,11 +36,14 @@ return [
 
     /*
      * Liste des origines autorisées pour éviter les erreurs CORS
+     * Ajoutez ici toutes les URL depuis lesquelles vos clients se connecteront.
      */
     'allowed_origins' => [
-        'http://localhost:8000',  // ✅ Ajout d'une URL locale
+        'http://localhost:8000',
         'http://127.0.0.1:8000',
         env('APP_URL', 'http://localhost'),
+        // Ajoutez l'IP de votre machine pour les clients sur le réseau local
+        'http://10.207.1.68:8000',
     ],
 
     /*
@@ -77,7 +82,7 @@ return [
         'local_cert' => env('LARAVEL_WEBSOCKETS_SSL_LOCAL_CERT', null),
         'local_pk' => env('LARAVEL_WEBSOCKETS_SSL_LOCAL_PK', null),
         'passphrase' => env('LARAVEL_WEBSOCKETS_SSL_PASSPHRASE', null),
-        'verify_peer' => false, // ✅ Ajouté pour éviter des erreurs SSL en local
+        'verify_peer' => false, // Désactive la vérification en local pour éviter les erreurs SSL
     ],
 
     /*

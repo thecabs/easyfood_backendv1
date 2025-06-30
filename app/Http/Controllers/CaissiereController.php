@@ -193,6 +193,9 @@ class CaissiereController extends Controller
             'id_shop' => 'nullable|exists:partenaire_shops,id_shop',
             'email' => 'nullable|email|unique:users,email,' . $id_user,
             'nom' => 'nullable|string|max:255',
+            'tel' => 'nullable|string|max:20',
+            'ville' => 'nullable|string',
+            'quartier' => 'nullable|string',
         ]);
 
         try {

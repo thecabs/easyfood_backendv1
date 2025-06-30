@@ -404,5 +404,11 @@ Route::middleware('auth:sanctum')->group(function () {
 });
  
 
- 
+use App\Events\NewInvoiceNotification;
+
+Route::post('/test-pusher', function () {
+    event(new NewInvoiceNotification(999));
+    return response()->json(['message' => 'Événement Pusher envoyé']);
+});
+
      
