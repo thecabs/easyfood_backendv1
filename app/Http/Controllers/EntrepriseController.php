@@ -12,11 +12,11 @@ class EntrepriseController extends Controller
 
 
 
- 
 
 
 
-     /**
+
+    /**
      * Rechercher les entreprises.
      */
 
@@ -63,39 +63,115 @@ class EntrepriseController extends Controller
     /**
      * Liste toutes les entreprises avec leurs assurances associées.
      */
+    //     public function index(Request $request)
+    // {
+    //     $user = Auth::user();
+
+    //     if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest','entreprise_gest'])) {
+    //         return response()->json([
+    //             'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
+    //         ], 403);
+    //     }
+
+    //     // Récupérer toutes les entreprises avec leurs assurances et gestionnaires
+    //     $entreprises = Entreprise::with([
+    //         'assurance:id_assurance,libelle,logo',
+    //         'gestionnaire:id_user,nom,photo_profil,tel,email'
+    //     ])->get();
+
+    //     // Pagination manuelle
+    //     $perPage = $request->input('per_page', 10);
+    //     $currentPage = $request->input('page', 1);
+    //     $paginated = $entreprises->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+    //     // Construire la réponse paginée
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'data' => $paginated,
+    //         'pagination' => [
+    //             'total' => $entreprises->count(),
+    //             'per_page' => $perPage,
+    //             'current_page' => $currentPage,
+    //             'last_page' => ceil($entreprises->count() / $perPage),
+    //         ],
+    //     ], 200);
+    // }
     public function index(Request $request)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest','entreprise_gest'])) {
-        return response()->json([
-            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
-        ], 403);
+        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest', 'entreprise_gest'])) {
+            return response()->json([
+                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
+            ], 403);
+        }
+        $query = Entreprise::query();
+        if ($request->filled('id_assurance')) {
+            $query->where('id_assurance',$request->input('id_assurance', -1));
+        }
+        if ($request->filled('filters.global.value')) {
+            $value = $request->input('filters.global.value');
+            $query->where(function ($q) use ($value) {
+                $q->where('nom', 'like', "%$value%")
+                  ->orWhere('ville', 'like', "%$value%")
+                  ->orWhere('quartier', 'like', "%$value%")
+                  ->orWhere('secteur_activite', 'like', "%$value%");
+            });
+        }
+    
+        // filtrage
+        foreach ($request->input('filters', []) as $field => $filter) {
+            if ($field === 'global') continue;
+    
+            $operator = $filter['operator'] ?? 'and';
+            $constraints = $filter['constraints'] ?? [];
+    
+            $query->where(function ($q) use ($constraints, $field, $operator) {
+                foreach ($constraints as $rule) {
+                    $value = $rule['value'] ?? null;
+                    $mode = $rule['matchMode'] ?? 'contains';
+    
+                    if (is_null($value)) continue;
+    
+                    $clause = match ($mode) {
+                        'startsWith' => [$field, 'like', $value . '%'],
+                        'endsWith'   => [$field, 'like', '%' . $value],
+                        'contains'   => [$field, 'like', '%' . $value . '%'],
+                        'equals'     => [$field, '=', $value],
+                        'notEquals'  => [$field, '!=', $value],
+                        'in'         => [$field, $value],
+                        default      => null
+                    };
+    
+                    if (!$clause) continue;
+    
+                    $operator === 'or'
+                        ? $q->orWhere(...$clause)
+                        : $q->where(...$clause);
+                }
+            });
+        }
+    
+
+
+        if ($request->filled('id_assurance')) {
+            $query->where('id_assurance', 'like', '%' . $request->id_assurance . '%');
+        }
+
+        //tri
+        if ($request->filled('sortField') && $request->filled('sortOrder')) {
+            $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
+            $query->orderBy($request->sortField, $direction);
+        }else{
+            $query->orderBy('id_entreprise', 'desc');
+
+        }
+        //pagination
+        return $query->with([
+            'assurance:id_assurance,libelle,logo',
+            'gestionnaire:id_user,nom,photo_profil,tel,email'
+        ])->paginate($request->get('rows', 10));
     }
-
-    // Récupérer toutes les entreprises avec leurs assurances et gestionnaires
-    $entreprises = Entreprise::with([
-        'assurance:id_assurance,libelle,logo',
-        'gestionnaire:id_user,nom,photo_profil,tel,email'
-    ])->get();
-
-    // Pagination manuelle
-    $perPage = $request->input('per_page', 10);
-    $currentPage = $request->input('page', 1);
-    $paginated = $entreprises->slice(($currentPage - 1) * $perPage, $perPage)->values();
-
-    // Construire la réponse paginée
-    return response()->json([
-        'status' => 'success',
-        'data' => $paginated,
-        'pagination' => [
-            'total' => $entreprises->count(),
-            'per_page' => $perPage,
-            'current_page' => $currentPage,
-            'last_page' => ceil($entreprises->count() / $perPage),
-        ],
-    ], 200);
-}
 
     /**
      * Affiche une entreprise spécifique avec son assurance associée.
@@ -103,13 +179,13 @@ class EntrepriseController extends Controller
     public function show($id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest','entreprise_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest', 'entreprise_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
 
-        $entreprise = Entreprise::with(['assurance','gestionnaire'])->find($id);
+        $entreprise = Entreprise::with(['assurance', 'gestionnaire'])->find($id);
 
         if (!$entreprise) {
             return response()->json(['message' => 'Entreprise non trouvée'], 404);
@@ -117,7 +193,7 @@ class EntrepriseController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data'=> $entreprise
+            'data' => $entreprise
         ], 200);
     }
 
@@ -132,7 +208,7 @@ class EntrepriseController extends Controller
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
-    
+
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'secteur_activite' => 'required|string|max:255',
@@ -145,21 +221,21 @@ class EntrepriseController extends Controller
             'nom.required' => 'Le nom de l\'entreprise est obligatoire.',
             'id_assurance.exists' => 'L\'assurance associée n\'existe pas.',
         ]);
-    
+
         try {
             $logoPath = null;
             if ($request->hasFile('logo')) {
                 $logoName = time() . '.' . $request->logo->extension();
                 $logoPath = $request->logo->storeAs('logos/entreprises', $logoName, 'public');
             }
-    
+
             $validated['logo'] = $logoPath ? 'storage/' . $logoPath : null;
-    
+
             $entreprise = Entreprise::create($validated);
-    
+
             // Charger la relation assurance pour renvoyer l'entreprise avec son assurance associée
             $entreprise->load('assurance');
-    
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Entreprise créée avec succès.',
@@ -173,66 +249,66 @@ class EntrepriseController extends Controller
             ], 500);
         }
     }
-    
+
 
     /**
      * Met à jour une entreprise existante et gère le logo.
      */
     public function update(Request $request, $id)
-{
-    $user = Auth::user();
-    if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest', 'entreprise_gest'])) {
-        return response()->json([
-            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
-        ], 403);
-    }
-
-    $entreprise = Entreprise::find($id);
-
-    if (!$entreprise) {
-        return response()->json(['message' => 'Entreprise non trouvée'], 404);
-    }
-
-    $validated = $request->validate([
-        'nom' => 'sometimes|string|max:255',
-        'secteur_activite' => 'sometimes|string|max:255',
-        'ville' => 'sometimes|string|max:255',
-        'quartier' => 'sometimes|string|max:255',
-        'adresse' => 'sometimes|string',
-        'id_assurance' => 'sometimes|required|exists:assurances,id_assurance',
-        'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096',
-    ]);
-
-    try {
-        if ($request->hasFile('logo')) {
-            // Supprimer l'ancien logo si un nouveau est téléversé
-            if ($entreprise->logo) {
-                Storage::disk('public')->delete(str_replace('storage/', '', $entreprise->logo));
-            }
-
-            $logoName = time() . '.' . $request->logo->extension();
-            $logoPath = $request->logo->storeAs('logos/entreprises', $logoName, 'public');
-            $validated['logo'] = 'storage/' . $logoPath;
+    {
+        $user = Auth::user();
+        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest', 'entreprise_gest'])) {
+            return response()->json([
+                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
+            ], 403);
         }
 
-        $entreprise->update($validated);
+        $entreprise = Entreprise::find($id);
 
-        // Charger la relation assurance pour l'entreprise mise à jour
-        $entreprise->load('assurance');
+        if (!$entreprise) {
+            return response()->json(['message' => 'Entreprise non trouvée'], 404);
+        }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Entreprise mise à jour avec succès.',
-            'data' => $entreprise,
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Erreur lors de la mise à jour de l\'entreprise.',
-            'error' => $e->getMessage(),
-        ], 500);
+        $validated = $request->validate([
+            'nom' => 'sometimes|string|max:255',
+            'secteur_activite' => 'sometimes|string|max:255',
+            'ville' => 'sometimes|string|max:255',
+            'quartier' => 'sometimes|string|max:255',
+            'adresse' => 'sometimes|string',
+            'id_assurance' => 'sometimes|required|exists:assurances,id_assurance',
+            'logo' => 'nullable|mimes:jpeg,png,jpg,gif|max:4096',
+        ]);
+
+        try {
+            if ($request->hasFile('logo')) {
+                // Supprimer l'ancien logo si un nouveau est téléversé
+                if ($entreprise->logo) {
+                    Storage::disk('public')->delete(str_replace('storage/', '', $entreprise->logo));
+                }
+
+                $logoName = time() . '.' . $request->logo->extension();
+                $logoPath = $request->logo->storeAs('logos/entreprises', $logoName, 'public');
+                $validated['logo'] = 'storage/' . $logoPath;
+            }
+
+            $entreprise->update($validated);
+
+            // Charger la relation assurance pour l'entreprise mise à jour
+            $entreprise->load('assurance');
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Entreprise mise à jour avec succès.',
+                'data' => $entreprise,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors de la mise à jour de l\'entreprise.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
-}
 
 
     /**
@@ -241,7 +317,7 @@ class EntrepriseController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        if (!in_array($user->role, ['superadmin', 'admin','assurance_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);

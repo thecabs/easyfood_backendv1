@@ -23,14 +23,31 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $password = '12345678';
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
+            'nom' => $this->faker->name(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'tel' => $this->faker->phoneNumber(),
+            'ville' => fake()->city(),
+            'quartier' => fake()->streetName(),
+            'password' => Hash::make($password),
+            'statut' => 'actif',
         ];
     }
+
+    public function configure(): static
+{
+    return $this->afterCreating(function (\App\Models\User $user) {
+        \App\Models\Compte::create([
+            'id_user' => $user->id_user,
+            'numero_compte' => \App\Models\Compte::generateNumeroCompte($user),
+            'solde' => 0,
+            'date_creation' => now(),
+            'pin' => Hash::make('0000'),
+        ]);
+    });
+}
+
 
     /**
      * Indicate that the model's email address should be unverified.
