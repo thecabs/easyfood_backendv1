@@ -59,14 +59,60 @@ use Illuminate\Support\Facades\DB;
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
-        $query = Assurance::with('gestionnaire:id_user,id_assurance,nom,photo_profil,tel,email');
-
-        if ($request->has('sortField') && $request->has('sortOrder')) {
-            $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
-            $query->orderBy($request->sortField, $direction);
+        $query = Assurance::query();
+        if ($request->filled('filters.global.value')) {
+            $value = $request->input('filters.global.value');
+            $query->where(function ($q) use ($value) {
+                $q->where('code_ifc', 'like', "%$value%")
+                  ->orWhere('libelle', 'like', "%$value%");
+            });
         }
     
-        return $query->paginate($request->get('rows', 10));
+        // filtrage
+        foreach ($request->input('filters', []) as $field => $filter) {
+            if ($field === 'global') continue;
+    
+            $operator = $filter['operator'] ?? 'and';
+            $constraints = $filter['constraints'] ?? [];
+    
+            $query->where(function ($q) use ($constraints, $field, $operator) {
+                foreach ($constraints as $rule) {
+                    $value = $rule['value'] ?? null;
+                    $mode = $rule['matchMode'] ?? 'contains';
+    
+                    if (is_null($value)) continue;
+    
+                    $clause = match ($mode) {
+                        'startsWith' => [$field, 'like', $value . '%'],
+                        'endsWith'   => [$field, 'like', '%' . $value],
+                        'contains'   => [$field, 'like', '%' . $value . '%'],
+                        'equals'     => [$field, '=', $value],
+                        'notEquals'  => [$field, '!=', $value],
+                        'in'         => [$field, $value],
+                        default      => null
+                    };
+    
+                    if (!$clause) continue;
+    
+                    $operator === 'or'
+                        ? $q->orWhere(...$clause)
+                        : $q->where(...$clause);
+                }
+            });
+        }
+    
+        //tri
+        if ($request->filled('sortField') && $request->filled('sortOrder')) {
+            $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
+            $query->orderBy($request->sortField, $direction);
+        }else{
+            $query->orderBy('id_assurance', 'desc');
+
+        }
+    
+        return $query->with([
+            'gestionnaire:id_user,nom,photo_profil,tel,email'
+        ])->paginate($request->get('rows', 10));
     
     }
     

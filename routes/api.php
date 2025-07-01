@@ -1,37 +1,39 @@
 <?php
 
-use App\Http\Controllers\AuthController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\AssuranceController;
-use App\Http\Controllers\EntrepriseController;
-use App\Http\Controllers\EmployeController;
-use App\Http\Controllers\PartenaireShopController;
-use App\Http\Controllers\CaissiereController;
-use App\Http\Controllers\CompteController;
-use App\Http\Controllers\TransactionController;
-use App\Http\Controllers\CategorieController;
-use App\Http\Controllers\ProduitController;
-use App\Http\Controllers\StockController;
-use App\Http\Controllers\FactureController;
-
-use App\Http\Controllers\ProductFeaturesController;
-
-
-use App\Http\Controllers\SuperAdminController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\PartenaireShopGestController;
-use App\Http\Controllers\AssuranceGestController;
-use App\Http\Controllers\dashboardCredit;
-use App\Http\Controllers\DemandeController;
-use App\Http\Controllers\EntrepriseGestController;
-use App\Http\Controllers\getUserConnected;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\TravailleurController;
 use App\Models\Demande;
+use App\Events\MessageSent;
+use Illuminate\Http\Request;
 use App\Models\PartenaireShop;
+use App\Http\Controllers\TestNotif;
+use Illuminate\Support\Facades\Route;
+use App\Events\NewInvoiceNotification;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\dashboardCredit;
+use App\Http\Controllers\StockController;
+use App\Http\Controllers\CompteController;
+use App\Http\Controllers\getUserConnected;
+use App\Http\Controllers\DemandeController;
+use App\Http\Controllers\EmployeController;
+use App\Http\Controllers\FactureController;
+use App\Http\Controllers\ProduitController;
+
+
+use App\Http\Controllers\AssuranceController;
+use App\Http\Controllers\CaissiereController;
+use App\Http\Controllers\CategorieController;
+use App\Http\Controllers\EntrepriseController;
+use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TravailleurController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\AssuranceGestController;
+use App\Http\Controllers\EntrepriseGestController;
+use App\Http\Controllers\PartenaireShopController;
+use App\Http\Controllers\ProductFeaturesController;
+use App\Http\Controllers\PartenaireShopGestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -273,8 +275,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/transaction', [TransactionController::class, 'index']);
     Route::post('/transaction', [TransactionController::class, 'store']);
-
-
 });
 
 
@@ -409,6 +409,11 @@ Route::middleware('auth:sanctum')->group(function () {
 // notifications
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('notification')->group(function () {
+        Route::post('testnotif', function (\Illuminate\Http\Request $request) {
+            $message = $request->input('message');
+            event(new MessageSent($message));
+            return response()->json(['status' => 'Message envoyé']);
+        });
         Route::get('/', [NotificationController::class, 'index']); //recuperer les notifications
         Route::get('/unreadnotifications', [NotificationController::class, 'getUnRead']); //recuperer les notifications non lues
         Route::get('/readnotifications', [NotificationController::class, 'getRead']); //recuperer les notifications lues
@@ -449,20 +454,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transaction/confirm', [TransactionController::class, 'confirmTransaction']);
 });
 
-<<<<<<< HEAD
-use App\Events\NewInvoiceNotification;
+// <<<<<<< HEAD
+
 
 Route::post('/test-pusher', function () {
     event(new NewInvoiceNotification(999));
     return response()->json(['message' => 'Événement Pusher envoyé']);
 });
 
-     
-=======
+
 // Dahsboards
 Route::middleware('auth:sanctum')->group(function () {
-    Route::prefix('dashboard')->group(function(){
-        Route::get('credit',[dashboardCredit::class, 'index']);
+    Route::prefix('dashboard')->group(function () {
+        Route::get('credit', [dashboardCredit::class, 'index']);
     });
 });
->>>>>>> b9fb884e700fc9e86188df41a55166c090aa22b8
+// >>>>>>> b9fb884e700fc9e86188df41a55166c090aa22b8

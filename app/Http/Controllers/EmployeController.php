@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\AccountActivated;
+use App\Models\Roles;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -266,11 +267,69 @@ class EmployeController extends Controller
             ], 403);
         }
 
+        $query = User::query()->where('role',Roles::Employe->value);
+
+        if ($request->filled('id_entreprise')) {
+            $query->where('id_entreprise',$request->input('id_entreprise', -1));
+        }
+
+        // filtrage global
+        if ($request->filled('filters.global.value') ) {
+            $value = $request->input('filters.global.value');
+            $query->where(function ($q) use ($value) {
+                $q->where('nom', 'like', "%$value%")
+                  ->orWhere('ville', 'like', "%$value%")
+                  ->orWhere('quartier', 'like', "%$value%")
+                  ->orWhere('tel', 'like', "%$value%")
+                  ->orWhere('email', 'like', "%$value%");
+            });
+        }
+    
+        // filtrage
+        foreach ($request->input('filters', []) as $field => $filter) {
+            if ($field === 'global') continue;
+    
+            $operator = $filter['operator'] ?? 'and';
+            $constraints = $filter['constraints'] ?? [];
+    
+            $query->where(function ($q) use ($constraints, $field, $operator) {
+                foreach ($constraints as $rule) {
+                    $value = $rule['value'] ?? null;
+                    $mode = $rule['matchMode'] ?? 'contains';
+    
+                    if (is_null($value)) continue;
+    
+                    $clause = match ($mode) {
+                        'startsWith' => [$field, 'like', $value . '%'],
+                        'endsWith'   => [$field, 'like', '%' . $value],
+                        'contains'   => [$field, 'like', '%' . $value . '%'],
+                        'equals'     => [$field, '=', $value],
+                        'notEquals'  => [$field, '!=', $value],
+                        'in'         => [$field, $value],
+                        default      => null
+                    };
+    
+                    if (!$clause) continue;
+    
+                    $operator === 'or'
+                        ? $q->orWhere(...$clause)
+                        : $q->where(...$clause);
+                }
+            });
+        }
+
+        //tri
+        if ($request->filled('sortField') && $request->filled('sortOrder')) {
+            $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
+            $query->orderBy($request->sortField, $direction);
+        }else{
+            $query->orderBy('id_user', 'desc');
+        }
         // Récupérer les employés avec leurs entreprises
-        $employes = User::where('role', 'employe')
-            ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')
-            ->paginate($request->get('rows', 10));
-        return  $employes;
+            
+        return  $query
+        ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')
+        ->paginate($request->get('rows', 10));
     }
 
 

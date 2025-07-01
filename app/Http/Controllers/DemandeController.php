@@ -25,37 +25,73 @@ class DemandeController extends Controller
     /**
      * Recuperer les demandes de l'admin.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         $verifRole = new VerifRole();
+        $query = Demande::getAll($user->id_user);
 
-        // if ($verifRole->isAdmin()) {
-        //         $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
-            
-        // }
-        // if ($verifRole->isShop()) {
-        //     $demandes = Demande::where('id_destinataire', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
-        // }
-        // if ($verifRole->isEmploye()) {
-        //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with(['destinataire' => function ($query) {
-        //         $query->select('id_user', 'nom', 'tel', 'email', 'role', 'id_entreprise', 'photo_profil')->with('entreprise:id_entreprise,nom,secteur_activite,ville,quartier,adresse');
-        //     }, 'emetteur:id_user,nom,email,ville,tel,role,photo_profil'])->get();
-        // }
-        // if ($verifRole->isEntreprise()) {
-        //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with(['destinataire' => function ($query) {
-        //         $query->select('id_user', 'nom', 'tel', 'email', 'role', 'id_entreprise', 'photo_profil')->with('entreprise:id_entreprise,nom,secteur_activite,ville,quartier,adresse');
-        //     }, 'emetteur:id_user,nom,email,ville,tel,role,photo_profil'])->get();
-        // }
-        // if ($verifRole->isAdmin() or $verifRole->isShop() or $verifRole->isEntreprise() or $verifRole->isEmploye()) {
-        //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->get();
-        // }
-        $demandes = Demande::getAll($user->id_user)->get();
-        return response()->json([
-            'status' => 'success',
-            'data' => $demandes,
-            'messages' => 'demandes recupérées.',
-        ], 200);
+        if ($request->filled('id_emetteur')) {
+            $query->where('id_emetteur',$request->input('id_emetteur', -1));
+        }
+        if ($request->filled('id_destinataire')) {
+            $query->where('id_destinataire',$request->input('id_destinataire', -1));
+        }
+
+        // filtrage global
+        if ($request->filled('filters.global.value') ) {
+            $value = $request->input('filters.global.value');
+            $query->where(function ($q) use ($value) {
+                $q->where('nom', 'like', "%$value%")
+                  ->orWhere('ville', 'like', "%$value%")
+                  ->orWhere('quartier', 'like', "%$value%")
+                  ->orWhere('tel', 'like', "%$value%")
+                  ->orWhere('email', 'like', "%$value%");
+            });
+        }
+    
+        // filtrage
+        foreach ($request->input('filters', []) as $field => $filter) {
+            if ($field === 'global') continue;
+    
+            $operator = $filter['operator'] ?? 'and';
+            $constraints = $filter['constraints'] ?? [];
+    
+            $query->where(function ($q) use ($constraints, $field, $operator) {
+                foreach ($constraints as $rule) {
+                    $value = $rule['value'] ?? null;
+                    $mode = $rule['matchMode'] ?? 'contains';
+    
+                    if (is_null($value)) continue;
+    
+                    $clause = match ($mode) {
+                        'startsWith' => [$field, 'like', $value . '%'],
+                        'endsWith'   => [$field, 'like', '%' . $value],
+                        'contains'   => [$field, 'like', '%' . $value . '%'],
+                        'equals'     => [$field, '=', $value],
+                        'notEquals'  => [$field, '!=', $value],
+                        'in'         => [$field, $value],
+                        default      => null
+                    };
+    
+                    if (!$clause) continue;
+    
+                    $operator === 'or'
+                        ? $q->orWhere(...$clause)
+                        : $q->where(...$clause);
+                }
+            });
+        }
+
+        //tri
+        if ($request->filled('sortField') && $request->filled('sortOrder')) {
+            $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
+            $query->orderBy($request->sortField, $direction);
+        }else{
+            $query->orderBy('id_demande', 'desc');
+        }
+        
+        return $query->paginate($request->get('rows', 10));
     }
 
     /**
@@ -117,14 +153,14 @@ class DemandeController extends Controller
                 }
             }
             
-            //enregistrement de la transaction 
-            DB::commit();
             //envoi de l'email
             Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandSent($demande));
 
             $demande->load(['destinataire.entreprise', 'destinataire.shop', 'images','emetteur.entreprise','emetteur.shop']);
             // envoyer une notification
             $demande->destinataire->notify(new \App\Notifications\DemandeRecu($demande));
+            //enregistrement de la transaction 
+            DB::commit();
 
             return response()->json([
                 'status' => 'success',
@@ -138,7 +174,7 @@ class DemandeController extends Controller
             return response()->json([
                 'status' => 'error',
                 'error' => $e->getMessage(),
-                'message' => 'une erreur est survenue lors de l\'envoi de la demande'
+                'message' => 'une erreur est survenue lors de l\'envoi de la demande verifiez votre connexion internet'
             ], 422);
         }
     }

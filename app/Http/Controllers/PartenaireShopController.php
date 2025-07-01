@@ -45,6 +45,73 @@ class PartenaireShopController extends Controller
      */
     
 
+    // public function index(Request $request)
+    // {
+    //     $user = Auth::user();
+    
+    //     if (!in_array($user->role, ['superadmin', 'admin','shop_gest', 'employe'])) {
+    //         return response()->json(['message' => 'Accès non autorisé.'], 403);
+    //     }
+    
+    //     $query = PartenaireShop::query();
+    
+    //     // Filtres
+    //     if ($request->has('nom')) {
+    //         $query->where('nom', 'like', '%' . $request->input('nom') . '%');
+    //     }
+    
+    //     if ($request->has('ville')) {
+    //         $query->where('ville', $request->input('ville'));
+    //     }
+    
+    //     if ($request->has('quartier')) {
+    //         $query->where('quartier', 'like', '%' . $request->input('quartier') . '%');
+    //     }
+    
+    //     // Tri
+    //     if ($request->has('sort_by') && $request->has('order')) {
+    //         $sortBy = $request->input('sort_by');
+    //         $order = strtolower($request->input('order')) === 'desc' ? 'desc' : 'asc';
+    //         $query->orderBy($sortBy, $order);
+    //     } else {
+    //         $query->orderBy('created_at', 'desc');
+    //     }
+    
+    //     // Pagination
+    //     $shops = $query->with('gestionnaire')->paginate($request->input('per_page', 10));
+    
+    //     // Formatage des données pour inclure le gestionnaire
+    //     $formattedShops = $shops->map(function ($shop) {
+    //         return [
+    //             'id_shop' => $shop->id_shop,
+    //             'nom' => $shop->nom,
+    //             'adresse' => $shop->adresse,
+    //             'ville' => $shop->ville,
+    //             'quartier' => $shop->quartier,
+    //             'logo' => $shop->logo,
+    //             'created_at' => $shop->created_at,
+    //             'updated_at' => $shop->updated_at,
+    //             'gestionnaire' => $shop->gestionnaire ? [
+    //                 'id_user' => $shop->gestionnaire->id_user,
+    //                 'nom' => $shop->gestionnaire->nom,
+    //                 'email' => $shop->gestionnaire->email,
+    //                 'tel' => $shop->gestionnaire->tel,
+    //                 'photo_profil' => $shop->gestionnaire->photo_profil,
+    //             ] : null,
+    //         ];
+    //     });
+    
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'data' => $formattedShops,
+    //         'pagination' => [
+    //             'total' => $shops->total(),
+    //             'per_page' => $shops->perPage(),
+    //             'current_page' => $shops->currentPage(),
+    //             'last_page' => $shops->lastPage(),
+    //         ],
+    //     ], 200);
+    // }
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -53,64 +120,62 @@ class PartenaireShopController extends Controller
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
     
-        $query = PartenaireShop::query();
-    
-        // Filtres
-        if ($request->has('nom')) {
-            $query->where('nom', 'like', '%' . $request->input('nom') . '%');
+        $query = PartenaireShop::query()->select('id_shop','nom','adresse','ville','quartier','logo','created_at','updated_at','id_gestionnaire');
+        if ($request->filled('filters.global.value')) {
+            $value = $request->input('filters.global.value');
+            $query->where(function ($q) use ($value) {
+                $q->where('nom', 'like', "%$value%")
+                  ->orWhere('ville', 'like', "%$value%")
+                  ->orWhere('quartier', 'like', "%$value%")
+                  ->orWhere('adresse', 'like', "%$value%");
+            });
         }
     
-        if ($request->has('ville')) {
-            $query->where('ville', $request->input('ville'));
+        // filtrage
+        foreach ($request->input('filters', []) as $field => $filter) {
+            if ($field === 'global') continue;
+    
+            $operator = $filter['operator'] ?? 'and';
+            $constraints = $filter['constraints'] ?? [];
+    
+            $query->where(function ($q) use ($constraints, $field, $operator) {
+                foreach ($constraints as $rule) {
+                    $value = $rule['value'] ?? null;
+                    $mode = $rule['matchMode'] ?? 'contains';
+    
+                    if (is_null($value)) continue;
+    
+                    $clause = match ($mode) {
+                        'startsWith' => [$field, 'like', $value . '%'],
+                        'endsWith'   => [$field, 'like', '%' . $value],
+                        'contains'   => [$field, 'like', '%' . $value . '%'],
+                        'equals'     => [$field, '=', $value],
+                        'notEquals'  => [$field, '!=', $value],
+                        'in'         => [$field, $value],
+                        default      => null
+                    };
+    
+                    if (!$clause) continue;
+    
+                    $operator === 'or'
+                        ? $q->orWhere(...$clause)
+                        : $q->where(...$clause);
+                }
+            });
         }
     
-        if ($request->has('quartier')) {
-            $query->where('quartier', 'like', '%' . $request->input('quartier') . '%');
+        //tri
+        if ($request->filled('sortField') && $request->filled('sortOrder')) {
+            $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
+            $query->orderBy($request->sortField, $direction);
+        }else{
+            $query->orderBy('id_shop', 'desc');
+
         }
     
-        // Tri
-        if ($request->has('sort_by') && $request->has('order')) {
-            $sortBy = $request->input('sort_by');
-            $order = strtolower($request->input('order')) === 'desc' ? 'desc' : 'asc';
-            $query->orderBy($sortBy, $order);
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-    
-        // Pagination
-        $shops = $query->with('gestionnaire')->paginate($request->input('per_page', 10));
-    
-        // Formatage des données pour inclure le gestionnaire
-        $formattedShops = $shops->map(function ($shop) {
-            return [
-                'id_shop' => $shop->id_shop,
-                'nom' => $shop->nom,
-                'adresse' => $shop->adresse,
-                'ville' => $shop->ville,
-                'quartier' => $shop->quartier,
-                'logo' => $shop->logo,
-                'created_at' => $shop->created_at,
-                'updated_at' => $shop->updated_at,
-                'gestionnaire' => $shop->gestionnaire ? [
-                    'id_user' => $shop->gestionnaire->id_user,
-                    'nom' => $shop->gestionnaire->nom,
-                    'email' => $shop->gestionnaire->email,
-                    'tel' => $shop->gestionnaire->tel,
-                    'photo_profil' => $shop->gestionnaire->photo_profil,
-                ] : null,
-            ];
-        });
-    
-        return response()->json([
-            'status' => 'success',
-            'data' => $formattedShops,
-            'pagination' => [
-                'total' => $shops->total(),
-                'per_page' => $shops->perPage(),
-                'current_page' => $shops->currentPage(),
-                'last_page' => $shops->lastPage(),
-            ],
-        ], 200);
+        return $query->with([
+            'gestionnaire:id_user,nom,photo_profil,tel,email'
+        ])->paginate($request->get('rows', 10));
     }
     
 

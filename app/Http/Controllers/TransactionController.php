@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\NewTransactionNotification;
 use Exception;
 use App\Models\User;
 use App\Models\Compte;
+use App\Models\VerifRole;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use App\Models\TypeTransaction;
-use App\Models\VerifRole;
-use App\Notifications\TransactionReçue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use App\Events\TransactionRecueEvent;
 use Illuminate\Validation\Rules\Enum;
+use App\Notifications\TransactionReçue;
+use App\Events\NewTransactionNotification;
 
 class TransactionController extends Controller
 {
@@ -85,6 +86,7 @@ class TransactionController extends Controller
                     'message' => "Le compte destinataire ne peut pas être le même que le compte émetteur."
                 ], 400);
             }
+           
 
             //decrementer le solde du compte emetteur
             $compteEmetteur->solde -= $validated['montant'];
@@ -115,10 +117,15 @@ class TransactionController extends Controller
                       }]);
                 }
             ]);
-
+            // envoi d'un mail 
             Mail::to($compteEmetteur->user->email)->send(new \App\Mail\TransactionEmitted($transaction));
             Mail::to($compteDestinataire->user->email)->send(new \App\Mail\TransactionReceived($transaction));
-            $compteDestinataire->user->notify(new TransactionReçue($transaction));
+            // Envoi de la notification
+            $notification = new TransactionReçue($transaction);
+            $compteDestinataire->user->notify($notification);
+            $destinataire =  User::where('id_user',$compteDestinataire->id_user)->first();
+            $lastNotification = $destinataire->notifications()->latest()->first();
+            event(new TransactionRecueEvent($lastNotification));
             event(new NewTransactionNotification(
                 $compteDestinataire->user->id_user,
                 [
@@ -130,6 +137,7 @@ class TransactionController extends Controller
                 ]
             ));
             $notifications = $compteDestinataire->user->unreadNotifications;
+            
             DB::commit();
             return response()->json([
                 'status' => "success",

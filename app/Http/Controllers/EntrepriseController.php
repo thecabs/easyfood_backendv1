@@ -115,6 +115,7 @@ class EntrepriseController extends Controller
                 $q->where('nom', 'like', "%$value%")
                   ->orWhere('ville', 'like', "%$value%")
                   ->orWhere('quartier', 'like', "%$value%")
+                  ->orWhere('adresse', 'like', "%$value%")
                   ->orWhere('secteur_activite', 'like', "%$value%");
             });
         }
