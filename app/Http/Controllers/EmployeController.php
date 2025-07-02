@@ -14,7 +14,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\AccountActivated;
+use App\Models\Assurance;
 use App\Models\Roles;
+use App\Models\VerifRole;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +26,7 @@ class EmployeController extends Controller
     const STATUT_INACTIF = 'inactif';
     const STATUT_EN_ATTENTE = 'en_attente';
     const STATUT_ACTIF = 'actif';
- 
+
     /**
      * Création d'un compte Employé.
      */
@@ -37,7 +39,7 @@ class EmployeController extends Controller
         'ville' => 'nullable|string',
         'quartier' => 'nullable|string',
         'id_entreprise' => 'required|exists:entreprises,id_entreprise',
-        'tel' => 'required|string|max:15',  
+        'tel' => 'required|string|max:15',
         'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
     ]);
 
@@ -53,7 +55,7 @@ class EmployeController extends Controller
             'password' => Hash::make($request->password),
             'nom' => $request->nom,
             'id_entreprise' => $request->id_entreprise,
-            'tel' => $request->tel,  
+            'tel' => $request->tel,
             'role' => 'employe',
         ];
         // Mise à jour des informations autorisées
@@ -102,8 +104,8 @@ class EmployeController extends Controller
     }
 }
 
-    
-   
+
+
     /**
      * Validation de l'OTP pour l'employé.
      */
@@ -218,47 +220,11 @@ class EmployeController extends Controller
             ], 500);
         }
     }
-
-    /**
-     * Liste des employés.
-     */
-    // public function index(Request $request)
-    // {
-    //     $currentUser = Auth::user();
-
-    //     if (!in_array($currentUser->role, ['superadmin', 'admin', 'entreprise_gest', 'assurance_gest'])) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
-    //         ], 403);
-    //     }
-
-    //     // Récupérer les employés avec leurs entreprises
-    //     $employes = User::where('role', 'employe')
-    //         ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')
-    //         ->get();
-
-    //     // Pagination manuelle
-    //     $perPage = $request->input('per_page', 10);
-    //     $currentPage = $request->input('page', 1);
-    //     $paginated = $employes->slice(($currentPage - 1) * $perPage, $perPage)->values();
-
-    //     // Construire la réponse paginée
-    //     return response()->json([
-    //         'status' => 'success',
-    //         'message' => 'Liste des employés récupérée avec succès.',
-    //         'data' => $paginated,
-    //         'pagination' => [
-    //             'total' => $employes->count(),
-    //             'per_page' => $perPage,
-    //             'current_page' => $currentPage,
-    //             'last_page' => ceil($employes->count() / $perPage),
-    //         ],
-    //     ], 200);
-    // }
+    // tout les employes
     public function index(Request $request)
     {
         $currentUser = Auth::user();
+        $verifRole = new VerifRole();
 
         if (!in_array($currentUser->role, ['superadmin', 'admin', 'entreprise_gest', 'assurance_gest'])) {
             return response()->json([
@@ -266,8 +232,15 @@ class EmployeController extends Controller
                 'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
             ], 403);
         }
-
-        $query = User::query()->where('role',Roles::Employe->value);
+        if($verifRole->isAdmin()){
+            $query = User::query()->where('role',Roles::Employe->value)->where('statut','actif');
+        }
+        if($verifRole->isEntreprise()){
+            $query = User::query()->where('role',Roles::Employe->value)->where('id_entreprise',$currentUser->id_entreprise)->where('statut','actif');
+        }
+        if($verifRole->isAssurance()){
+            $query = Assurance::getEmployeAssurance($currentUser->id_assurance)->where('statut','actif');
+        }
 
         if ($request->filled('id_entreprise')) {
             $query->where('id_entreprise',$request->input('id_entreprise', -1));
@@ -284,38 +257,66 @@ class EmployeController extends Controller
                   ->orWhere('email', 'like', "%$value%");
             });
         }
-    
-        // filtrage
+
+        // filtrage par champs
         foreach ($request->input('filters', []) as $field => $filter) {
             if ($field === 'global') continue;
-    
+
             $operator = $filter['operator'] ?? 'and';
             $constraints = $filter['constraints'] ?? [];
-    
-            $query->where(function ($q) use ($constraints, $field, $operator) {
-                foreach ($constraints as $rule) {
-                    $value = $rule['value'] ?? null;
-                    $mode = $rule['matchMode'] ?? 'contains';
-    
-                    if (is_null($value)) continue;
-    
-                    $clause = match ($mode) {
-                        'startsWith' => [$field, 'like', $value . '%'],
-                        'endsWith'   => [$field, 'like', '%' . $value],
-                        'contains'   => [$field, 'like', '%' . $value . '%'],
-                        'equals'     => [$field, '=', $value],
-                        'notEquals'  => [$field, '!=', $value],
-                        'in'         => [$field, $value],
-                        default      => null
-                    };
-    
-                    if (!$clause) continue;
-    
-                    $operator === 'or'
-                        ? $q->orWhere(...$clause)
-                        : $q->where(...$clause);
-                }
-            });
+
+            if ($field === 'entreprise') {
+                $query->whereHas('entreprise',function ($q) use ($constraints, $field, $operator) {
+                    foreach ($constraints as $rule) {
+                        $value = $rule['value'] ?? null;
+                        $mode = $rule['matchMode'] ?? 'contains';
+
+                        if (is_null($value)) continue;
+
+                        $clause = match ($mode) {
+                            'startsWith' => ['nom', 'like', $value . '%'],
+                            'endsWith'   => ['nom', 'like', '%' . $value],
+                            'contains'   => ['nom', 'like', '%' . $value . '%'],
+                            'equals'     => ['nom', '=', $value],
+                            'notEquals'  => ['nom', '!=', $value],
+                            'in'         => ['nom', $value],
+                            default      => null
+                        };
+
+                        if (!$clause) continue;
+
+                        $operator === 'or'
+                            ? $q->orWhere(...$clause)
+                            : $q->where(...$clause);
+                    }
+                });
+            }else{
+                $query->where(function ($q) use ($constraints, $field, $operator) {
+                    foreach ($constraints as $rule) {
+                        $value = $rule['value'] ?? null;
+                        $mode = $rule['matchMode'] ?? 'contains';
+
+                        if (is_null($value)) continue;
+
+                        $clause = match ($mode) {
+                            'startsWith' => [$field, 'like', $value . '%'],
+                            'endsWith'   => [$field, 'like', '%' . $value],
+                            'contains'   => [$field, 'like', '%' . $value . '%'],
+                            'equals'     => [$field, '=', $value],
+                            'notEquals'  => [$field, '!=', $value],
+                            'in'         => [$field, $value],
+                            default      => null
+                        };
+
+                        if (!$clause) continue;
+
+                        $operator === 'or'
+                            ? $q->orWhere(...$clause)
+                            : $q->where(...$clause);
+                    }
+                });
+            }
+
         }
 
         //tri
@@ -326,10 +327,138 @@ class EmployeController extends Controller
             $query->orderBy('id_user', 'desc');
         }
         // Récupérer les employés avec leurs entreprises
-            
-        return  $query
+        $employes =  $query
         ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')
+        //pagination
         ->paginate($request->get('rows', 10));
+        // Récupérer le dernier employe
+        $last_employe = collect($employes->items())->last();
+        $response = [
+            'data' => $employes->items(),
+            'last_item' => $last_employe,
+            'current_page' => $employes->currentPage(),
+            'last_page' => $employes->lastPage(),
+            'per_page' => $employes->perPage(),
+            'total' => $employes->total(),
+        ];
+
+        return response()->json($response) ;
+    }
+    // tout les nonActif
+    public function nonActif(Request $request)
+    {
+        $currentUser = Auth::user();
+        $verifRole = new VerifRole();
+
+        if (!in_array($currentUser->role, [ 'entreprise_gest'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
+            ], 403);
+        }
+        $query = User::query()->where('role',Roles::Employe->value)->where('id_entreprise',$currentUser->id_entreprise)->where('statut','!=','actif');
+
+        if ($request->filled('id_entreprise')) {
+            $query->where('id_entreprise',$request->input('id_entreprise', -1));
+        }
+
+        // filtrage global
+        if ($request->filled('filters.global.value') ) {
+            $value = $request->input('filters.global.value');
+            $query->where(function ($q) use ($value) {
+                $q->where('nom', 'like', "%$value%")
+                  ->orWhere('ville', 'like', "%$value%")
+                  ->orWhere('quartier', 'like', "%$value%")
+                  ->orWhere('tel', 'like', "%$value%")
+                  ->orWhere('email', 'like', "%$value%");
+            });
+        }
+
+        // filtrage par champs
+        foreach ($request->input('filters', []) as $field => $filter) {
+            if ($field === 'global') continue;
+
+            $operator = $filter['operator'] ?? 'and';
+            $constraints = $filter['constraints'] ?? [];
+
+            if ($field === 'entreprise') {
+                $query->whereHas('entreprise',function ($q) use ($constraints, $field, $operator) {
+                    foreach ($constraints as $rule) {
+                        $value = $rule['value'] ?? null;
+                        $mode = $rule['matchMode'] ?? 'contains';
+
+                        if (is_null($value)) continue;
+
+                        $clause = match ($mode) {
+                            'startsWith' => ['nom', 'like', $value . '%'],
+                            'endsWith'   => ['nom', 'like', '%' . $value],
+                            'contains'   => ['nom', 'like', '%' . $value . '%'],
+                            'equals'     => ['nom', '=', $value],
+                            'notEquals'  => ['nom', '!=', $value],
+                            'in'         => ['nom', $value],
+                            default      => null
+                        };
+
+                        if (!$clause) continue;
+
+                        $operator === 'or'
+                            ? $q->orWhere(...$clause)
+                            : $q->where(...$clause);
+                    }
+                });
+            }else{
+                $query->where(function ($q) use ($constraints, $field, $operator) {
+                    foreach ($constraints as $rule) {
+                        $value = $rule['value'] ?? null;
+                        $mode = $rule['matchMode'] ?? 'contains';
+
+                        if (is_null($value)) continue;
+
+                        $clause = match ($mode) {
+                            'startsWith' => [$field, 'like', $value . '%'],
+                            'endsWith'   => [$field, 'like', '%' . $value],
+                            'contains'   => [$field, 'like', '%' . $value . '%'],
+                            'equals'     => [$field, '=', $value],
+                            'notEquals'  => [$field, '!=', $value],
+                            'in'         => [$field, $value],
+                            default      => null
+                        };
+
+                        if (!$clause) continue;
+
+                        $operator === 'or'
+                            ? $q->orWhere(...$clause)
+                            : $q->where(...$clause);
+                    }
+                });
+            }
+
+        }
+
+        //tri
+        if ($request->filled('sortField') && $request->filled('sortOrder')) {
+            $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
+            $query->orderBy($request->sortField, $direction);
+        }else{
+            $query->orderBy('id_user', 'desc');
+        }
+        // Récupérer les employés avec leurs entreprises
+        $employes =  $query
+        ->with('entreprise:id_entreprise,id_assurance,nom,secteur_activite,ville,quartier')
+        //pagination
+        ->paginate($request->get('rows', 10));
+        // Récupérer le dernier employe
+        $last_employe = collect($employes->items())->last();
+        $response = [
+            'data' => $employes->items(),
+            'last_item' => $last_employe,
+            'current_page' => $employes->currentPage(),
+            'last_page' => $employes->lastPage(),
+            'per_page' => $employes->perPage(),
+            'total' => $employes->total(),
+        ];
+
+        return response()->json($response) ;
     }
 
 
@@ -444,13 +573,13 @@ class EmployeController extends Controller
         ], 500);
     }
 }
-   
- 
+
+
     public function getEmployeInfo($id_user)
 {
     // Vérifier l'authentification
     $user = Auth::user();
-    
+
     if (!$user || $user->role !== 'employe') {
         return response()->json(['error' => 'Accès refusé'], 403);
     }
@@ -498,7 +627,7 @@ public function getHistorique($id_user)
 {
     // Vérification de l'authentification
     $user = Auth::user();
-    
+
     if (!in_array($user->role, ['superadmin','employe'])) {
         return response()->json([
             'status' => 'error',

@@ -4,8 +4,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Assurance extends Model
 {
@@ -29,7 +30,12 @@ class Assurance extends Model
     {
         return $this->belongsTo(User::class, 'id_gestionnaire');
     }
-  
 
-   
+    public static function getEmployeAssurance($id_assurance):Builder{
+        return User::whereHas('entreprise',function ($q) use($id_assurance) {
+            return $q->where('id_assurance',$id_assurance)->where('role', Roles::Employe->value);
+        });
+    }
+
+
 }

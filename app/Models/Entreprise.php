@@ -54,4 +54,5 @@ class Entreprise extends Model
     {
         return $this->belongsTo(Compte::class, 'id_compte');
     }
+
 }

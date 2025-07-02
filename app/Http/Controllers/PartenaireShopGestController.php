@@ -159,7 +159,6 @@ class PartenaireShopGestController extends Controller
                 'id_user' => $user->id_user,
                 'pin' => Hash::make($defaultPin),
             ]);
-
             // Envoyer un email au gestionnaire avec ses informations de connexion
             Mail::to($user->email)->send(new \App\Mail\AccountCreatedMail($user, $generatedPassword, $compte, $defaultPin));
 

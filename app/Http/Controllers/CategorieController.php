@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Categorie;
+use App\Models\VerifRole;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
@@ -12,30 +13,119 @@ class CategorieController extends Controller
     /**
      * Liste des catégories accessibles par l'utilisateur.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $currentUser = Auth::user();
+        $user = Auth::user();
+        $verifRole = new VerifRole();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere', 'employe'])) {
+        if (!in_array($user->role, ['superadmin', 'shop_gest', 'admin','caissiere', 'employe'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
 
-        // Si l'utilisateur est un gestionnaire de shop, ne récupérer que ses catégories
-        $categories = $currentUser->role === 'shop_gest'
-            ? Categorie::where('id_shop', $currentUser->id_shop)->get()
-            : Categorie::all();
+            if ($verifRole->isShop() OR $verifRole->isCaissiere()) {
+                $query = Categorie::query()->where('id_shop',$user->id_shop);
+            }else {
+                $query = Categorie::query();
+            }
+            //filtrage global
+            if ($request->filled('filters.global.value')) {
+                $value = $request->input('filters.global.value');
+                $query->where(function ($q) use ($value) {
+                    $q->where('libelle', 'like', "%$value%");
+                });
+            }
 
-         // Récupérer toutes les categorie avec leurs shops
-         $categories = Categorie::with(['shop:id_shop,nom,logo,quartier,ville' ])->get();
+            // filtrage par champs
+            foreach ($request->input('filters', []) as $field => $filter) {
+                if ($field === 'global') continue;
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $categories,
-        ], 200);
+                $operator = $filter['operator'] ?? 'and';
+                $constraints = $filter['constraints'] ?? [];
+                if ($field === 'shop') {
+                    $query->whereHas('shop',function ($q) use ($constraints, $field, $operator) {
+                        foreach ($constraints as $rule) {
+                            $value = $rule['value'] ?? null;
+                            $mode = $rule['matchMode'] ?? 'contains';
+
+                            if (is_null($value)) continue;
+
+                            $clause = match ($mode) {
+                                'startsWith' => ['nom', 'like', $value . '%'],
+                                'endsWith'   => ['nom', 'like', '%' . $value],
+                                'contains'   => ['nom', 'like', '%' . $value . '%'],
+                                'equals'     => ['nom', '=', $value],
+                                'notEquals'  => ['nom', '!=', $value],
+                                'in'         => ['nom', $value],
+                                default      => null
+                            };
+
+                            if (!$clause) continue;
+
+                            $operator === 'or'
+                                ? $q->orWhere(...$clause)
+                                : $q->where(...$clause);
+                        }
+                    });
+                }else{
+                    $query->where(function ($q) use ($constraints, $field, $operator) {
+                        foreach ($constraints as $rule) {
+                            $value = $rule['value'] ?? null;
+                            $mode = $rule['matchMode'] ?? 'contains';
+
+                            if (is_null($value)) continue;
+
+                            $clause = match ($mode) {
+                                'startsWith' => [$field, 'like', $value . '%'],
+                                'endsWith'   => [$field, 'like', '%' . $value],
+                                'contains'   => [$field, 'like', '%' . $value . '%'],
+                                'equals'     => [$field, '=', $value],
+                                'notEquals'  => [$field, '!=', $value],
+                                'in'         => [$field, $value],
+                                default      => null
+                            };
+
+                            if (!$clause) continue;
+
+                            $operator === 'or'
+                                ? $q->orWhere(...$clause)
+                                : $q->where(...$clause);
+                        }
+                    });
+                }
+
+
+            }
+            // recuperer les categories d'un shop
+            if ($request->filled('id_shop')) {
+                $query->where('id_shop', 'like', '%' . $request->id_shop . '%');
+            }
+
+            //tri
+            if ($request->filled('sortField') && $request->filled('sortOrder')) {
+                $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
+                $query->orderBy($request->sortField, $direction);
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+            $categories = $query->with([
+                'shop:id_shop,nom,logo',
+            ])->paginate($request->get('rows', 10));
+            $last_categorie = collect($categories->items())->last();
+            //pagination
+            $response = [
+                'data' => $categories->items(),
+                'last_item' => $last_categorie,
+                'current_page' => $categories->currentPage(),
+                'last_page' => $categories->lastPage(),
+                'per_page' => $categories->perPage(),
+                'total' => $categories->total(),
+            ];
+
+            return response()->json($response);
     }
 
     /**
@@ -44,7 +134,7 @@ class CategorieController extends Controller
     public function store(Request $request)
     {
         $currentUser = Auth::user();
-    
+
         // Vérification des permissions
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere'])) {
             return response()->json([
@@ -52,30 +142,30 @@ class CategorieController extends Controller
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-    
-        $validated = $request->validate([ 
+
+        $validated = $request->validate([
             'libelle' => ['required','string',Rule::unique('categories')->where(function($query){
                 $user =  Auth::user();
                 $query->where('id_shop',$user->id_shop);
             })],
             'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);
-    
+
         $categorie = Categorie::create([
             'libelle' => $validated['libelle'],
             'id_shop' => $currentUser->role === 'shop_gest' ? $currentUser->id_shop : $request->id_shop,
         ]);
-    
+
         // Charger la relation shop pour renvoyer la catégorie avec son shop associé
         $categorie->load('shop');
-    
+
         return response()->json([
             'status' => 'success',
             'message' => 'Catégorie créée avec succès.',
             'data' => $categorie,
         ], 201);
     }
-    
+
     /**
      * Afficher une catégorie spécifique.
      */

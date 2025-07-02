@@ -39,7 +39,7 @@ class AccountCreatedMail extends Mailable
      */
     public function build()
     {
-        if($this->user->role == Roles::Admin){
+        if($this->user->role == Roles::Admin->value){
 
             return $this->view('emails.account_created')
                 ->subject('Votre compte administrateur a été créé')
@@ -50,7 +50,7 @@ class AccountCreatedMail extends Mailable
                     'pin' => $this->pin,
                 ]);
         }
-        if($this->user->role == Roles::Shop){
+        if($this->user->role == Roles::Shop->value){
 
             return $this->view('emails.account_created')
                 ->subject('Votre compte gestionnaire shop a été créé')
@@ -61,7 +61,7 @@ class AccountCreatedMail extends Mailable
                     'pin' => $this->pin,
                 ]);
         }
-        if($this->user->role == Roles::Entreprise){
+        if($this->user->role == Roles::Entreprise->value){
 
             return $this->view('emails.account_created')
                 ->subject('Votre compte gestionnaire entreprise a été créé')
