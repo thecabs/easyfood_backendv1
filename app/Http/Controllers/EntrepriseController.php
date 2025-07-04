@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Assurance;
 use App\Models\VerifRole;
 use App\Models\Entreprise;
+use App\Models\QueryFiler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -109,93 +110,16 @@ class EntrepriseController extends Controller
         if ($verifRole->isAssurance()) {
             $query = Entreprise::query()->where('id_assurance', $user->id_assurance);
         }
-        if ($request->filled('id_assurance')) {
-            $query->where('id_assurance', $request->input('id_assurance', -1));
-        }
-        //filtrage global
-        if ($request->filled('filters.global.value')) {
-            $value = $request->input('filters.global.value');
-            $query->where(function ($q) use ($value) {
-                $q->where('nom', 'like', "%$value%")
-                    ->orWhere('ville', 'like', "%$value%")
-                    ->orWhere('quartier', 'like', "%$value%")
-                    ->orWhere('adresse', 'like', "%$value%")
-                    ->orWhere('secteur_activite', 'like', "%$value%");
-            });
-        }
+        // définir les relations qui seront aussi filtrées et leurs champs
+        $relationMap = [
+        'assurance' => 'assurance.libelle',
+        ];
 
-        // filtrage par champs
-        foreach ($request->input('filters', []) as $field => $filter) {
-            if ($field === 'global') continue;
+        // definir les champs concerne par le filtre global
+        $globalSearchFields = ['nom','ville','quartier','adresse','secteur_activite', 'assurance.libelle'];
+        $filter = new QueryFiler($relationMap, $globalSearchFields, 'id_entreprise');
+        $query = $filter->apply($query, $request);
 
-            $operator = $filter['operator'] ?? 'and';
-            $constraints = $filter['constraints'] ?? [];
-            if ($field === 'assurance') {
-                $query->whereHas('assurance',function ($q) use ($constraints, $field, $operator) {
-                    foreach ($constraints as $rule) {
-                        $value = $rule['value'] ?? null;
-                        $mode = $rule['matchMode'] ?? 'contains';
-
-                        if (is_null($value)) continue;
-
-                        $clause = match ($mode) {
-                            'startsWith' => ['libelle', 'like', $value . '%'],
-                            'endsWith'   => ['libelle', 'like', '%' . $value],
-                            'contains'   => ['libelle', 'like', '%' . $value . '%'],
-                            'equals'     => ['libelle', '=', $value],
-                            'notEquals'  => ['libelle', '!=', $value],
-                            'in'         => ['libelle', $value],
-                            default      => null
-                        };
-
-                        if (!$clause) continue;
-
-                        $operator === 'or'
-                            ? $q->orWhere(...$clause)
-                            : $q->where(...$clause);
-                    }
-                });
-            }else{
-                $query->where(function ($q) use ($constraints, $field, $operator) {
-                    foreach ($constraints as $rule) {
-                        $value = $rule['value'] ?? null;
-                        $mode = $rule['matchMode'] ?? 'contains';
-
-                        if (is_null($value)) continue;
-
-                        $clause = match ($mode) {
-                            'startsWith' => [$field, 'like', $value . '%'],
-                            'endsWith'   => [$field, 'like', '%' . $value],
-                            'contains'   => [$field, 'like', '%' . $value . '%'],
-                            'equals'     => [$field, '=', $value],
-                            'notEquals'  => [$field, '!=', $value],
-                            'in'         => [$field, $value],
-                            default      => null
-                        };
-
-                        if (!$clause) continue;
-
-                        $operator === 'or'
-                            ? $q->orWhere(...$clause)
-                            : $q->where(...$clause);
-                    }
-                });
-            }
-
-
-        }
-        // recuperer les entreprises d'une assurance
-        if ($request->filled('id_assurance')) {
-            $query->where('id_assurance', 'like', '%' . $request->id_assurance . '%');
-        }
-
-        //tri
-        if ($request->filled('sortField') && $request->filled('sortOrder')) {
-            $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
-            $query->orderBy($request->sortField, $direction);
-        } else {
-            $query->orderBy('id_entreprise', 'desc');
-        }
         $entreprises = $query->with([
             'assurance:id_assurance,libelle,logo',
             'gestionnaire:id_user,nom,photo_profil,tel,email'

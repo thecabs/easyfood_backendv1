@@ -380,6 +380,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 
 
+
 // le stock
 
 
