@@ -93,7 +93,7 @@ class AuthController extends Controller
     //     }
     // }
 
-    // ancienne fonction 
+    // ancienne fonction
 
     public function login(Request $request)
     {

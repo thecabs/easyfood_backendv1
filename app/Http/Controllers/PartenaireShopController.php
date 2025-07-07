@@ -236,7 +236,7 @@ class PartenaireShopController extends Controller
     }
 
     $validated = $request->validate([
-        'nom' => 'sometimes|required|string|max:255|unique:partenaire_shops,nom,' . $shop->id . ',id_shop,ville,' . $request->ville . ',quartier,' . $request->quartier,
+        'nom' => 'sometimes|required|string|max:255|unique:partenaire_shops,nom,' . $shop->id_shop . ',id_shop,ville,' . $request->ville . ',quartier,' . $request->quartier,
         'adresse' => 'sometimes|required|string|max:255',
         'ville' => 'sometimes|required|string|max:100',
         'quartier' => 'sometimes|required|string|max:100',

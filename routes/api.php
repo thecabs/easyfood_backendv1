@@ -412,11 +412,6 @@ Route::middleware('auth:sanctum')->group(function () {
 // notifications
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('notification')->group(function () {
-        Route::post('testnotif', function (\Illuminate\Http\Request $request) {
-            $message = $request->input('message');
-            event(new MessageSent($message));
-            return response()->json(['status' => 'Message envoyé']);
-        });
         Route::get('/', [NotificationController::class, 'index']); //recuperer les notifications
         Route::get('/unreadnotifications', [NotificationController::class, 'getUnRead']); //recuperer les notifications non lues
         Route::get('/readnotifications', [NotificationController::class, 'getRead']); //recuperer les notifications lues

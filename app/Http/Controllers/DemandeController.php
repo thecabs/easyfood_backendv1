@@ -60,7 +60,7 @@ class DemandeController extends Controller
     }
 
     /**
-     * Envooyer une demande de l'admin
+     * Envoyer une demande de l'admin
      */
     public function storeAdmin(Request $request)
     {
@@ -274,7 +274,7 @@ class DemandeController extends Controller
     {
         $user = Auth::user();
         $verifRole = new VerifRole();
-        if (!$verifRole->isAdmin() and !$verifRole->isEntreprise() and !$verifRole->isShop()) {
+        if (!$verifRole->isAdmin() and !$verifRole->isEntreprise() and !$verifRole->isEmploye() and !$verifRole->isShop()) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous ne pouvez pas éffectuer cette action.'
@@ -296,26 +296,6 @@ class DemandeController extends Controller
                 'message' => 'Cette demande n\'hexiste pas!'
             ], 403);
         }
-    }
-
-    //tester l'envoi de l'email
-    public function sendEmail(){
-        $user = Auth::user();
-        $demande = Demande::where('id_emetteur', $user->id_user)->first();
-        try{
-            echo json_encode($demande);
-            Mail::to('fredricka703@phugruphy.com')->send(new \App\Mail\DemandRefused($demande));
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Email envoyé avec succès.',
-            ], 200);
-        }catch(Exception $e){
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Une erreur est survenue lors de l\'envoi de l\'email: '.$e->getMessage(),
-            ], 500);
-        }
-
     }
 
     /**
@@ -368,6 +348,7 @@ class DemandeController extends Controller
                 if ($verifRole->isEntreprise()) {
                     $type = TypeTransaction::RECHARGEEMPLOYE;
                 }
+
                 //creer la transaction
                 $transaction = Transaction::create([
                     'id_compte_emetteur' => $demande->destinataire->compte->id_compte,
@@ -386,6 +367,8 @@ class DemandeController extends Controller
                             // mettre a jour le solde du compte destinataire
                             $compteDest->solde += $demande->montant;
                             $compteDest->save();
+                            $transaction->save();
+
                         } else {
                             return response()->json([
                                 'status' => 'error',
@@ -399,6 +382,7 @@ class DemandeController extends Controller
 
                         if($compteEmet){
                             if (Hash::check($validated['pin'], $demande->destinataire->compte->pin)) {
+
                                 // verifier si le solde est suffisant
                                 if($compteEmet->solde >= $demande->montant){
                                     // mettre a jour le solde du compte de l'emetteur
@@ -408,6 +392,7 @@ class DemandeController extends Controller
 
                                     $compteDest->save();
                                     $compteEmet->save();
+                                    $transaction->save();
 
                                 }else{
 
@@ -438,6 +423,7 @@ class DemandeController extends Controller
 
                 //mettre a jour le statut
                 $demande->statut = Statuts_demande::Accorde->value;
+                //enregistrer la transaction dans la demande
 
                 //enregistrer les modifications
                 $demande->save();
@@ -501,7 +487,6 @@ class DemandeController extends Controller
                 'message' => 'Vous ne pouvez pas éffectuer cette action.'
             ], 403);
         }
-
         DB::beginTransaction();
 
         try {
