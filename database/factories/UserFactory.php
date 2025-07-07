@@ -43,7 +43,7 @@ class UserFactory extends Factory
             'numero_compte' => \App\Models\Compte::generateNumeroCompte($user),
             'solde' => 0,
             'date_creation' => now(),
-            'pin' => Hash::make('0000'),
+            'pin' => Hash::make(1234),
         ]);
     });
 }

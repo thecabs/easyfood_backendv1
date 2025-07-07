@@ -281,12 +281,11 @@ class DemandeController extends Controller
             ], 403);
         }
         //recuperer la demande
-        $demande = Demande::where('id_demande', $id)->orWhere('id_destinataire', $user->id_user)->first();
+        $demande = Demande::where('id_demande', $id)->with(['emetteur.entreprise','emetteur.shop','destinataire.entreprise','destinataire.shop','images'])->first();
         if ($demande) {
 
-            $demande->statut = Statuts_demande::Accorde->value;
 
-            response()->json([
+            return response()->json([
                 'status' => 'success',
                 'data' => $demande,
                 'message' => 'demande recupérée.',

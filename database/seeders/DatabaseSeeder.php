@@ -18,12 +18,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-          // 1. Générer 100 assurances
-          for ($i = 1; $i <= 100; $i++) {
+        // 1. Générer 100 assurances
+        for ($i = 1; $i <= 100; $i++) {
             $codeIFC = 'IFC-' . str_pad($i, 5, '0', STR_PAD_LEFT); // ex: IFC-00001
 
             $assurance = Assurance::factory()->create(
-              [  'code_ifc' => $codeIFC,]
+                ['code_ifc' => $codeIFC,]
 
             );
 
@@ -32,38 +32,38 @@ class DatabaseSeeder extends Seeder
                 'id_assurance' => $assurance->id_assurance,
             ]);
 
-            $assurance->update(['id_gestionnaire' => $gestAssurance->id_user]);
 
             // 2. Générer 10 entreprises par assurance
             for ($j = 1; $j <= 10; $j++) {
                 $ville = fake()->city();
                 $quartier = fake()->streetName();
 
+                $entreprise = Entreprise::factory()->create([
+                    'id_assurance' => $assurance->id_assurance,
+                    'ville' => $ville,
+                    'quartier' => $quartier,
+                ]);
                 $gestEntreprise = User::factory()->create([
                     'role' => 'entreprise_gest',
                     'ville' => $ville,
                     'quartier' => $quartier,
+                    'id_entreprise' => $entreprise->id_entreprise
                 ]);
 
-                $entreprise = Entreprise::factory()->create([
-                    'id_assurance' => $assurance->id_assurance,
-                    'id_gestionnaire' => $gestEntreprise->id_user,
-                    'ville' => $ville,
-                    'quartier' => $quartier,
-                ]);
 
-                $gestEntreprise->update(['id_entreprise' => $entreprise->id]);
+
                 for ($l = 1; $l <= 10; $l++) {
 
                     // 3. Générer 5 employés par entreprise
                     User::factory()->create([
                         'role' => 'employe',
                         'id_entreprise' => $entreprise->id_entreprise,
-                        'id_assurance' => $assurance->id_assurance,
                         'ville' => $ville,
                         'quartier' => $quartier,
                     ]);
                 }
+                $assurance->update(['id_gestionnaire' => $gestAssurance->id_user]);
+                $entreprise->update(['id_gestionnaire' => $gestEntreprise->id_user]);
             }
         }
 
@@ -90,7 +90,5 @@ class DatabaseSeeder extends Seeder
             ]);
             $gestShop->update(['id_shop' => $shop->id_shop]);
         }
-    
-
     }
 }
