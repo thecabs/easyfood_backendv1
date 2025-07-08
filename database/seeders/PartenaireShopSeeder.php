@@ -19,14 +19,6 @@ class PartenaireShopSeeder extends Seeder
          for ($k = 12; $k <= 120; $k++) {
             $ville = fake()->city();
             $quartier = fake()->streetName();
-
-            $gestShop = User::factory()->create([
-                'role' => 'shop_gest',
-                'ville' => $ville,
-                'quartier' => $quartier,
-            ]);
-
-            // Générer un nom unique par combinaison (nom, ville, quartier)
             $nom = 'Shop ' . strtoupper(Str::random(5)) . " $ville $quartier";
 
             $shop = PartenaireShop::factory()->create([
@@ -34,10 +26,18 @@ class PartenaireShopSeeder extends Seeder
                 'adresse' => fake()->address(),
                 'ville' => $ville,
                 'quartier' => $quartier,
-                'id_gestionnaire' => $gestShop->id_user,
             ]);
-            $gestShop->update(['id_shop' => $shop->id_shop]);
+            $gestShop = User::factory()->create([
+                'role' => 'shop_gest',
+                'ville' => $ville,
+                'quartier' => $quartier,
+                'id_shop'=>$shop->id_shop,
+            ]);
+
+            // Générer un nom unique par combinaison (nom, ville, quartier)
+
+            $shop->update(['id_gestionnaire' => $gestShop->id_user]);
         }
-    
+
     }
 }

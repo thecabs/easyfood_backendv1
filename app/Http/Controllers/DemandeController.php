@@ -9,7 +9,9 @@ use App\Models\Compte;
 use App\Models\Demande;
 use App\Models\VerifRole;
 use App\Models\Entreprise;
+use App\Models\QueryFiler;
 use App\Models\Transaction;
+use App\Events\DemandeEvent;
 use Illuminate\Http\Request;
 use App\Models\Roles_demande;
 use App\Models\Statuts_demande;
@@ -25,41 +27,40 @@ class DemandeController extends Controller
     /**
      * Recuperer les demandes de l'admin.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         $verifRole = new VerifRole();
+        $query = Demande::getAll($user->id_user);
 
-        // if ($verifRole->isAdmin()) {
-        //         $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
-            
-        // }
-        // if ($verifRole->isShop()) {
-        //     $demandes = Demande::where('id_destinataire', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with('destinataire.shop', 'emetteur', 'images')->get();
-        // }
-        // if ($verifRole->isEmploye()) {
-        //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with(['destinataire' => function ($query) {
-        //         $query->select('id_user', 'nom', 'tel', 'email', 'role', 'id_entreprise', 'photo_profil')->with('entreprise:id_entreprise,nom,secteur_activite,ville,quartier,adresse');
-        //     }, 'emetteur:id_user,nom,email,ville,tel,role,photo_profil'])->get();
-        // }
-        // if ($verifRole->isEntreprise()) {
-        //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->with(['destinataire' => function ($query) {
-        //         $query->select('id_user', 'nom', 'tel', 'email', 'role', 'id_entreprise', 'photo_profil')->with('entreprise:id_entreprise,nom,secteur_activite,ville,quartier,adresse');
-        //     }, 'emetteur:id_user,nom,email,ville,tel,role,photo_profil'])->get();
-        // }
-        // if ($verifRole->isAdmin() or $verifRole->isShop() or $verifRole->isEntreprise() or $verifRole->isEmploye()) {
-        //     $demandes = Demande::where('id_emetteur', $user->id_user)->orWhere('id_destinataire', $user->id_user)->get();
-        // }
-        $demandes = Demande::getAll($user->id_user)->get();
-        return response()->json([
-            'status' => 'success',
-            'data' => $demandes,
-            'messages' => 'demandes recupérées.',
-        ], 200);
+        // definir les relations qui seront aussi filtree et leurs champs
+        $relationMap = [
+            'emetteur' => 'emetteur.nom',
+            'destinataire' => 'destinataire.nom',
+        ];
+        // definir les champs concerne par le filtre global
+        $globalSearchFields = ['emetteur.nom', 'destinataire.nom', 'montant'];
+        $filter = new QueryFiler($relationMap, $globalSearchFields, 'id_demande', ['id_user']);
+        $query = $filter->apply($query, $request);
+
+        $demandes = $query->paginate($request->get('rows', 10));
+
+        $last_demande = collect($demandes->items())->last();
+        //pagination
+        $response = [
+            'data' => $demandes->items(),
+            'last_item' => $last_demande,
+            'current_page' => $demandes->currentPage(),
+            'last_page' => $demandes->lastPage(),
+            'per_page' => $demandes->perPage(),
+            'total' => $demandes->total(),
+        ];
+
+        return response()->json($response);
     }
 
     /**
-     * Envooyer une demande de l'admin
+     * Envoyer une demande de l'admin
      */
     public function storeAdmin(Request $request)
     {
@@ -95,7 +96,7 @@ class DemandeController extends Controller
                 'motif' => '',
                 'statut' => $statut,
             ]);
-            //verifier que le destinataire est le gestionnaire shop 
+            //verifier que le destinataire est le gestionnaire shop
             if($demande->destinataire->role != Roles::Shop->value){
                 return response()->json([
                     'status' => 'error',
@@ -116,15 +117,23 @@ class DemandeController extends Controller
                     ]);
                 }
             }
-            
-            //enregistrement de la transaction 
-            DB::commit();
+
             //envoi de l'email
-            Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandSent($demande));
+            // Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandSent($demande));
 
             $demande->load(['destinataire.entreprise', 'destinataire.shop', 'images','emetteur.entreprise','emetteur.shop']);
-            // envoyer une notification
-            $demande->destinataire->notify(new \App\Notifications\DemandeRecu($demande));
+            $destinataire = $demande->destinataire;
+
+            // 1. Envoyer la notification à l'utilisateur
+            $destinataire->notify(new \App\Notifications\DemandeNotification($demande));
+
+            // 2. Récupérer la dernière notification stockée en base
+            $lastNotification = $destinataire->notifications()->latest()->first();
+
+            // 3. Déclencher l'event (broadcast)
+            event(new DemandeEvent($lastNotification,$destinataire->id_user));
+            //enregistrement de la transaction
+            DB::commit();
 
             return response()->json([
                 'status' => 'success',
@@ -138,7 +147,7 @@ class DemandeController extends Controller
             return response()->json([
                 'status' => 'error',
                 'error' => $e->getMessage(),
-                'message' => 'une erreur est survenue lors de l\'envoi de la demande'
+                'message' => 'une erreur est survenue lors de l\'envoi de la demande verifiez votre connexion internet'
             ], 422);
         }
     }
@@ -207,7 +216,7 @@ class DemandeController extends Controller
                 }
             }
             if ($verifRole->isShop()) {
-                //verifier que le destinataire est l'employe 
+                //verifier que le destinataire est l'employe
                 if($demande->destinataire->role != Roles::Employe->value){
                     return response()->json([
                         'status' => 'error',
@@ -216,7 +225,7 @@ class DemandeController extends Controller
                 }
             }
             if ($verifRole->isEmploye()) {
-                //verifier que le destinataire est le gestionnaire entreprise 
+                //verifier que le destinataire est le gestionnaire entreprise
                 if($demande->destinataire->role != Roles::Entreprise->value){
                     return response()->json([
                         'status' => 'error',
@@ -228,15 +237,18 @@ class DemandeController extends Controller
             $demande->save();
 
             $demande->load(['emetteur', 'destinataire.entreprise','destinataire.shop','emetteur.entreprise','emetteur.shop']);
+            $destinataire = $demande->destinataire;
 
-            
-            //enregistrement de la demande 
+            // 1. Envoyer la notification à l'utilisateur
+            $destinataire->notify(new \App\Notifications\DemandeNotification($demande));
+
+            // 2. Récupérer la dernière notification stockée en base
+            $lastNotification = $destinataire->notifications()->latest()->first();
+
+            // 3. Déclencher l'event (broadcast)
+            event(new DemandeEvent($lastNotification,$destinataire->id_user));
+            //enregistrement de la demande
             DB::commit();
-            //envoi de l'email
-            Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandSent($demande));
-
-            // envoyer une notification
-            $demande->destinataire->notify(new \App\Notifications\DemandeRecu($demande));
 
             return response()->json([
                 'status' => 'success',
@@ -262,19 +274,18 @@ class DemandeController extends Controller
     {
         $user = Auth::user();
         $verifRole = new VerifRole();
-        if (!$verifRole->isAdmin() and !$verifRole->isEntreprise() and !$verifRole->isShop()) {
+        if (!$verifRole->isAdmin() and !$verifRole->isEntreprise() and !$verifRole->isEmploye() and !$verifRole->isShop()) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous ne pouvez pas éffectuer cette action.'
             ], 403);
         }
         //recuperer la demande
-        $demande = Demande::where('id_demande', $id)->orWhere('id_destinataire', $user->id_user)->first();
+        $demande = Demande::where('id_demande', $id)->with(['emetteur.entreprise','emetteur.shop','destinataire.entreprise','destinataire.shop','images'])->first();
         if ($demande) {
 
-            $demande->statut = Statuts_demande::Accorde->value;
 
-            response()->json([
+            return response()->json([
                 'status' => 'success',
                 'data' => $demande,
                 'message' => 'demande recupérée.',
@@ -285,26 +296,6 @@ class DemandeController extends Controller
                 'message' => 'Cette demande n\'hexiste pas!'
             ], 403);
         }
-    }
-
-    //tester l'envoi de l'email
-    public function sendEmail(){
-        $user = Auth::user();
-        $demande = Demande::where('id_emetteur', $user->id_user)->first();
-        try{
-            echo json_encode($demande);
-            Mail::to('fredricka703@phugruphy.com')->send(new \App\Mail\DemandRefused($demande));
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Email envoyé avec succès.',
-            ], 200);
-        }catch(Exception $e){
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Une erreur est survenue lors de l\'envoi de l\'email: '.$e->getMessage(),
-            ], 500);
-        }
-        
     }
 
     /**
@@ -346,7 +337,7 @@ class DemandeController extends Controller
                         ], 409);
                     }
                 }
-                
+
                 //type de transaction
                 if ($verifRole->isAdmin()) {
                     $type = TypeTransaction::RECHARGEENTREPRISE;
@@ -357,6 +348,7 @@ class DemandeController extends Controller
                 if ($verifRole->isEntreprise()) {
                     $type = TypeTransaction::RECHARGEEMPLOYE;
                 }
+
                 //creer la transaction
                 $transaction = Transaction::create([
                     'id_compte_emetteur' => $demande->destinataire->compte->id_compte,
@@ -375,6 +367,8 @@ class DemandeController extends Controller
                             // mettre a jour le solde du compte destinataire
                             $compteDest->solde += $demande->montant;
                             $compteDest->save();
+                            $transaction->save();
+
                         } else {
                             return response()->json([
                                 'status' => 'error',
@@ -388,15 +382,17 @@ class DemandeController extends Controller
 
                         if($compteEmet){
                             if (Hash::check($validated['pin'], $demande->destinataire->compte->pin)) {
+
                                 // verifier si le solde est suffisant
                                 if($compteEmet->solde >= $demande->montant){
                                     // mettre a jour le solde du compte de l'emetteur
                                     $compteEmet->solde -= $demande->montant;
                                     // mettre a jour le solde du compte destinataire
                                     $compteDest->solde += $demande->montant;
-                                    
+
                                     $compteDest->save();
                                     $compteEmet->save();
+                                    $transaction->save();
 
                                 }else{
 
@@ -427,24 +423,30 @@ class DemandeController extends Controller
 
                 //mettre a jour le statut
                 $demande->statut = Statuts_demande::Accorde->value;
+                //enregistrer la transaction dans la demande
 
                 //enregistrer les modifications
                 $demande->save();
 
-                
-                $demande->load( 'destinataire.shop','destinataire.entreprise','transaction.compteDestinataire');
-                
+
+
             } else {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Cette demande n\'hexiste pas!'
                 ], 403);
             }
-            //envoi des email
-            Mail::to($demande->emetteur->email)->send(new \App\Mail\DemandAgree($demande));
-            Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandAgreeSender($demande));
-            // envoyer une notification
-            $demande->emetteur->notify(new \App\Notifications\NotificationDemandeAccorde($demande));
+            $demande->load( 'destinataire.shop','destinataire.entreprise','emetteur.entreprise','emetteur.shop','transaction.compteDestinataire');
+            $emetteur = $demande->emetteur;
+
+            // 1. Envoyer la notification à l'utilisateur
+            $emetteur->notify(new \App\Notifications\DemandeNotification($demande));
+
+            // 2. Récupérer la dernière notification stockée en base
+            $lastNotification = $emetteur->notifications()->latest()->first();
+
+            // 3. Déclencher l'event (broadcast)
+            event(new DemandeEvent($lastNotification,$emetteur->id_user));
 
             DB::commit();
             return response()->json([
@@ -485,7 +487,6 @@ class DemandeController extends Controller
                 'message' => 'Vous ne pouvez pas éffectuer cette action.'
             ], 403);
         }
-
         DB::beginTransaction();
 
         try {
@@ -505,11 +506,24 @@ class DemandeController extends Controller
                     'message' => 'Cette demande n\'hexiste pas!'
                 ], 403);
             }
+
+            $demande->load( 'destinataire.shop','destinataire.entreprise','emetteur.entreprise','emetteur.shop','transaction.compteDestinataire');
+            $emetteur = $demande->emetteur;
+
+            // 1. Envoyer la notification à l'utilisateur
+            $emetteur->notify(new \App\Notifications\DemandeNotification($demande));
+
+            // 2. Récupérer la dernière notification stockée en base
+            $lastNotification = $emetteur->notifications()->latest()->first();
+
+            // 3. Déclencher l'event (broadcast)
+            event(new DemandeEvent($lastNotification,$emetteur->id_user));
+
             DB::commit();
             //envoi de l'email
-            Mail::to($demande->emetteur->email)->send(new \App\Mail\DemandRefused($demande));
-            // envoyer une notification
-            $demande->emetteur->notify(new \App\Notifications\NotificationDemandeRefuse($demande));
+            // Mail::to($demande->emetteur->email)->send(new \App\Mail\DemandRefused($demande));
+            // // envoyer une notification
+            // $demande->emetteur->notify(new \App\Notifications\NotificationDemandeRefuse($demande));
             return response()->json([
                 'status' => 'success',
                 'data' => [

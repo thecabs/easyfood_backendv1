@@ -2,80 +2,107 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Categorie;
-use Illuminate\Support\Facades\Auth;
+use App\Models\VerifRole;
+use App\Models\QueryFiler;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class CategorieController extends Controller
 {
     /**
      * Liste des catégories accessibles par l'utilisateur.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $currentUser = Auth::user();
+        $user = Auth::user();
+        $verifRole = new VerifRole();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere', 'employe'])) {
+        if (!in_array($user->role, ['superadmin', 'shop_gest', 'admin', 'caissiere', 'employe'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
 
-        // Si l'utilisateur est un gestionnaire de shop, ne récupérer que ses catégories
-        $categories = $currentUser->role === 'shop_gest'
-            ? Categorie::where('id_shop', $currentUser->id_shop)->get()
-            : Categorie::all();
+        if ($verifRole->isShop() or $verifRole->isCaissiere()) {
+            $query = Categorie::query()->where('id_shop', $user->id_shop);
+        } else {
+            $query = Categorie::query();
+        }
+        //filtrage global
+        if ($request->filled('filters.global.value')) {
+            $value = $request->input('filters.global.value');
+            $query->where(function ($q) use ($value) {
+                $q->where('libelle', 'like', "%$value%");
+            });
+        }
 
-         // Récupérer toutes les categorie avec leurs shops
-         $categories = Categorie::with(['shop:id_shop,nom,logo,quartier,ville' ])->get();
+        // definir les relations qui seront aussi filtree et leurs champs
+        $relationMap = [
+            'shop' => 'shop.nom'
+        ];
+        // definir les champs concerne par le filtre global
+        $globalSearchFields = ['libelle'];
+        $filter = new QueryFiler($relationMap, $globalSearchFields, 'id',['id_shop']);
+        $query = $filter->apply($query, $request);
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $categories,
-        ], 200);
+        $categories = $query->with([
+            'shop:id_shop,nom,logo',
+        ])->paginate($request->get('rows', 10));
+        $last_categorie = collect($categories->items())->last();
+        //pagination
+        $response = [
+            'data' => $categories->items(),
+            'last_item' => $last_categorie,
+            'current_page' => $categories->currentPage(),
+            'last_page' => $categories->lastPage(),
+            'per_page' => $categories->perPage(),
+            'total' => $categories->total(),
+        ];
+
+        return response()->json($response);
     }
-
     /**
      * Création d'une nouvelle catégorie pour un shop.
      */
     public function store(Request $request)
     {
         $currentUser = Auth::user();
-    
+
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-    
-        $validated = $request->validate([ 
-            'libelle' => ['required','string',Rule::unique('categories')->where(function($query){
+
+        $validated = $request->validate([
+            'libelle' => ['required', 'string', Rule::unique('categories')->where(function ($query) {
                 $user =  Auth::user();
-                $query->where('id_shop',$user->id_shop);
+                $query->where('id_shop', $user->id_shop);
             })],
             'id_shop' => 'required|exists:partenaire_shops,id_shop',
         ]);
-    
+
         $categorie = Categorie::create([
             'libelle' => $validated['libelle'],
             'id_shop' => $currentUser->role === 'shop_gest' ? $currentUser->id_shop : $request->id_shop,
         ]);
-    
+
         // Charger la relation shop pour renvoyer la catégorie avec son shop associé
         $categorie->load('shop');
-    
+
         return response()->json([
             'status' => 'success',
             'message' => 'Catégorie créée avec succès.',
             'data' => $categorie,
         ], 201);
     }
-    
+
     /**
      * Afficher une catégorie spécifique.
      */
@@ -84,7 +111,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin','caissiere'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
@@ -118,51 +145,51 @@ class CategorieController extends Controller
      * Mise à jour d'une catégorie.
      */
     public function update(Request $request, $id)
-{
-    $currentUser = Auth::user();
+    {
+        $currentUser = Auth::user();
 
-    // Vérification des permissions
-    if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
+        // Vérification des permissions
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
+            ], 403);
+        }
+
+        $categorie = Categorie::find($id);
+
+        if (!$categorie) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Catégorie introuvable.',
+            ], 404);
+        }
+
+        // Vérifier l'accès pour les gestionnaires de shop
+        if ($currentUser->role === 'shop_gest' && $categorie->id_shop !== $currentUser->id_shop) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Accès non autorisé à cette catégorie.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'libelle' => 'required|string|unique:categories,libelle,' . $id . '|max:255',
+        ]);
+
+        $categorie->update([
+            'libelle' => $validated['libelle'],
+        ]);
+
+        // Charger la relation shop après la mise à jour
+        $categorie->load('shop');
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-        ], 403);
+            'status' => 'success',
+            'message' => 'Catégorie mise à jour avec succès.',
+            'data' => $categorie,
+        ], 200);
     }
-
-    $categorie = Categorie::find($id);
-
-    if (!$categorie) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Catégorie introuvable.',
-        ], 404);
-    }
-
-    // Vérifier l'accès pour les gestionnaires de shop
-    if ($currentUser->role === 'shop_gest' && $categorie->id_shop !== $currentUser->id_shop) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Accès non autorisé à cette catégorie.',
-        ], 403);
-    }
-
-    $validated = $request->validate([
-        'libelle' => 'required|string|unique:categories,libelle,' . $id . '|max:255',
-    ]);
-
-    $categorie->update([
-        'libelle' => $validated['libelle'],
-    ]);
-
-    // Charger la relation shop après la mise à jour
-    $categorie->load('shop');
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Catégorie mise à jour avec succès.',
-        'data' => $categorie,
-    ], 200);
-}
 
 
     /**
@@ -173,7 +200,7 @@ class CategorieController extends Controller
         $currentUser = Auth::user();
 
         // Vérification des permissions
-        if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
+        if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',

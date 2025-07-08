@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Auth;
 */
 
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+    return (int) $user->id_user === (int) $id;
 });
 
 

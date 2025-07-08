@@ -2,18 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assurance;
+use App\Models\VerifRole;
 use App\Models\Entreprise;
+use App\Models\QueryFiler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class EntrepriseController extends Controller
 {
-
-
-
-
-
 
 
     /**
@@ -99,78 +97,45 @@ class EntrepriseController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        $verifRole = new VerifRole();
 
-        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest', 'entreprise_gest'])) {
+        if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest'])) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
             ], 403);
         }
-        $query = Entreprise::query();
-        if ($request->filled('id_assurance')) {
-            $query->where('id_assurance',$request->input('id_assurance', -1));
+        if ($verifRole->isAdmin()) {
+            $query = Entreprise::query();
         }
-        if ($request->filled('filters.global.value')) {
-            $value = $request->input('filters.global.value');
-            $query->where(function ($q) use ($value) {
-                $q->where('nom', 'like', "%$value%")
-                  ->orWhere('ville', 'like', "%$value%")
-                  ->orWhere('quartier', 'like', "%$value%")
-                  ->orWhere('secteur_activite', 'like', "%$value%");
-            });
+        if ($verifRole->isAssurance()) {
+            $query = Entreprise::query()->where('id_assurance', $user->id_assurance);
         }
-    
-        // filtrage
-        foreach ($request->input('filters', []) as $field => $filter) {
-            if ($field === 'global') continue;
-    
-            $operator = $filter['operator'] ?? 'and';
-            $constraints = $filter['constraints'] ?? [];
-    
-            $query->where(function ($q) use ($constraints, $field, $operator) {
-                foreach ($constraints as $rule) {
-                    $value = $rule['value'] ?? null;
-                    $mode = $rule['matchMode'] ?? 'contains';
-    
-                    if (is_null($value)) continue;
-    
-                    $clause = match ($mode) {
-                        'startsWith' => [$field, 'like', $value . '%'],
-                        'endsWith'   => [$field, 'like', '%' . $value],
-                        'contains'   => [$field, 'like', '%' . $value . '%'],
-                        'equals'     => [$field, '=', $value],
-                        'notEquals'  => [$field, '!=', $value],
-                        'in'         => [$field, $value],
-                        default      => null
-                    };
-    
-                    if (!$clause) continue;
-    
-                    $operator === 'or'
-                        ? $q->orWhere(...$clause)
-                        : $q->where(...$clause);
-                }
-            });
-        }
-    
+        // définir les relations qui seront aussi filtrées et leurs champs
+        $relationMap = [
+        'assurance' => 'assurance.libelle',
+        ];
 
+        // definir les champs concerne par le filtre global
+        $globalSearchFields = ['nom','ville','quartier','adresse','secteur_activite', 'assurance.libelle'];
+        $filter = new QueryFiler($relationMap, $globalSearchFields, 'id_entreprise');
+        $query = $filter->apply($query, $request);
 
-        if ($request->filled('id_assurance')) {
-            $query->where('id_assurance', 'like', '%' . $request->id_assurance . '%');
-        }
-
-        //tri
-        if ($request->filled('sortField') && $request->filled('sortOrder')) {
-            $direction = $request->sortOrder == -1 ? 'desc' : 'asc';
-            $query->orderBy($request->sortField, $direction);
-        }else{
-            $query->orderBy('id_entreprise', 'desc');
-
-        }
-        //pagination
-        return $query->with([
+        $entreprises = $query->with([
             'assurance:id_assurance,libelle,logo',
             'gestionnaire:id_user,nom,photo_profil,tel,email'
         ])->paginate($request->get('rows', 10));
+        $last_entreprise = collect($entreprises->items())->last();
+        //pagination
+        $response = [
+            'data' => $entreprises->items(),
+            'last_item' => $last_entreprise,
+            'current_page' => $entreprises->currentPage(),
+            'last_page' => $entreprises->lastPage(),
+            'per_page' => $entreprises->perPage(),
+            'total' => $entreprises->total(),
+        ];
+
+        return response()->json($response);
     }
 
     /**

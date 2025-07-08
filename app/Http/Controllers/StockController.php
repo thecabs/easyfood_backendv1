@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Stock;
+use App\Models\StockLog;
+use App\Models\QueryFiler;
+use Illuminate\Http\Request;
 use App\Models\PartenaireShop;
 use Illuminate\Support\Facades\Auth;
-use App\Models\StockLog;
 
 class StockController extends Controller
 {
@@ -61,8 +62,8 @@ class StockController extends Controller
         ]);
 
         $stock = Stock::where('id_produit', $validated['id_produit'])
-                      ->where('id_shop', $validated['id_shop'])
-                      ->first();
+            ->where('id_shop', $validated['id_shop'])
+            ->first();
 
         if (!$stock) {
             return response()->json([
@@ -104,76 +105,58 @@ class StockController extends Controller
     }
 
     public function index(Request $request)
-{
-    $currentUser = Auth::user();
+    {
+        $user = Auth::user();
 
-    // Définir les rôles autorisés pour consulter les stocks
-    $allowedRoles = ['superadmin', 'shop_gest', 'admin', 'caissiere'];
+        // Définir les rôles autorisés pour consulter les stocks
+        $allowedRoles = ['superadmin', 'shop_gest', 'admin', 'caissiere'];
 
-    if (!in_array($currentUser->role, $allowedRoles)) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
-        ], 403);
-    }
+        if (!in_array($user->role, $allowedRoles)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vous n\'êtes pas autorisé à accéder à cette ressource.',
+            ], 403);
+        }
 
-    // Préparer la requête de base sur le modèle Stock
-    $stocksQuery = Stock::query();
+        // Préparer la requête de base sur le modèle Stock
+        $query = Stock::query();
 
-    // Si l'utilisateur n'est pas superadmin, limiter l'accès aux stocks
-    if ($currentUser->role !== 'superadmin') {
-        if ($currentUser->role === 'shop_gest') {
-            // Pour un gestionnaire de magasin, on récupère tous les magasins qu'il gère
-            $shopIds = \App\Models\PartenaireShop::where('id_gestionnaire', $currentUser->id_user)
-                         ->pluck('id_shop');
-            $stocksQuery->whereIn('id_shop', $shopIds)->with([
-                'produit'=> function($query){
-                $query->select('id_produit','nom','prix_ifc','prix_shop','code_barre');
-            },
-                'shop'=> function($query){
-                $query->select('id_shop','nom');
-            },]);
-        } elseif ($currentUser->role === 'caissiere') {
-            // Pour une caissière, on suppose que le magasin auquel elle est associée est stocké dans une propriété (exemple : id_shop)
-            $stocksQuery->where('id_shop', $currentUser->id_shop)
-            ->with([
-                'produit'=> function($query){
-                $query->select('id_produit','nom','prix_ifc','prix_shop','code_barre');
-            },
-                'shop'=> function($query){
-                $query->select('id_shop','nom');
-            },
+        // Si l'utilisateur n'est pas superadmin, limiter l'accès aux stocks
+        if ($user->role != 'superadmin') {
+            $query->where(function ($q) use ($user) {
+                return $q->where('id_shop', $user->id_shop);
+            })->with([
+                'produit' => function ($query) {
+                    $query->select('id_produit', 'nom', 'prix_ifc', 'prix_shop', 'code_barre');
+                },
+                'shop' => function ($query) {
+                    $query->select('id_shop', 'nom');
+                },
             ]);
         }
-        // Vous pouvez ajouter d'autres restrictions si nécessaire pour le rôle 'admin'
+        // definir les relations qui seront aussi filtree et leurs champs
+        $relationMap = [
+            'produit' => 'produit.nom',
+        ];
+        // definir les champs concerne par le filtre global
+        $globalSearchFields = ['produit.nom','quantite' ];
+        $filter = new QueryFiler($relationMap, $globalSearchFields, 'id_stock');
+        $query = $filter->apply($query, $request);
+        $stocks = $query->paginate($request->get('rows', 10));
+
+        $last_stock = collect($stocks->items())->last();
+        //pagination
+        $response = [
+            'data' => $stocks->items(),
+            'last_item' => $last_stock,
+            'current_page' => $stocks->currentPage(),
+            'last_page' => $stocks->lastPage(),
+            'per_page' => $stocks->perPage(),
+            'total' => $stocks->total(),
+        ];
+
+        return response()->json($response);
     }
-
-    // Mise en place de la pagination
-    $perPage = $request->input('per_page', 10);
-    $currentPage = $request->input('page', 1);
-
-    // Récupérer le nombre total de stocks correspondant aux critères
-    $total = $stocksQuery->count();
-
-    // Appliquer la pagination sur la requête
-    $stocks = $stocksQuery
-                ->skip(($currentPage - 1) * $perPage)
-                ->take($perPage)
-                ->get();
-
-    // Construire et retourner la réponse
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Liste des stocks récupérée avec succès.',
-        'data' => $stocks,
-        'pagination' => [
-            'total' => $total,
-            'per_page' => $perPage,
-            'current_page' => $currentPage,
-            'last_page' => ceil($total / $perPage),
-        ],
-    ], 200);
-}
 
 
     /**
