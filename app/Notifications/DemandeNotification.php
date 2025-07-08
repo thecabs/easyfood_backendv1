@@ -164,6 +164,7 @@ class DemandeNotification extends Notification
             'demande_id' => $this->demande->id_demande,
             'date' => $this->demande->created_at,
             'de' => $this->demande->emetteur,
+            'statut' => $this->demande->statut,
             'type' => 'demande',
         ];
     }

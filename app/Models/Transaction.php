@@ -21,9 +21,19 @@ class transaction extends Model
     public function compteEmetteur(){
         return $this->belongsTo(Compte::class,'id_compte_emetteur', 'id_compte');
     }
-
     public function compteDestinataire(){
-        return $this->belongsTo(Compte::class, 'id_compte_destinataire', 'id_compte');
+        return $this->belongsTo(Compte::class,'id_compte_destinataire', 'id_compte');
+    }
+    public function emetteur(){
+        return User::query()->whereHas('comptes', function($q){
+            return $q->where('id_compte', $this->id_compte_emetteur);
+        })->first();
+    }
+
+    public function destinataire(){
+        return User::query()->whereHas('comptes', function($q){
+            return $q->where('id_compte', $this->id_compte_destinataire);
+        })->first();
     }
 
     public function demande(){

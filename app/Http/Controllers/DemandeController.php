@@ -97,7 +97,7 @@ class DemandeController extends Controller
                 'statut' => $statut,
             ]);
             //verifier que le destinataire est le gestionnaire shop
-            if($demande->destinataire->role != Roles::Shop->value){
+            if ($demande->destinataire->role != Roles::Shop->value) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'vous ne pouvez pas envoyer de message a ce destinataire'
@@ -121,7 +121,7 @@ class DemandeController extends Controller
             //envoi de l'email
             // Mail::to($demande->destinataire->email)->send(new \App\Mail\DemandSent($demande));
 
-            $demande->load(['destinataire.entreprise', 'destinataire.shop', 'images','emetteur.entreprise','emetteur.shop']);
+            $demande->load(['destinataire.entreprise', 'destinataire.shop', 'images', 'emetteur.entreprise', 'emetteur.shop']);
             $destinataire = $demande->destinataire;
 
             // 1. Envoyer la notification à l'utilisateur
@@ -131,7 +131,7 @@ class DemandeController extends Controller
             $lastNotification = $destinataire->notifications()->latest()->first();
 
             // 3. Déclencher l'event (broadcast)
-            event(new DemandeEvent($lastNotification,$destinataire->id_user));
+            event(new DemandeEvent($lastNotification, $destinataire->id_user));
             //enregistrement de la transaction
             DB::commit();
 
@@ -208,7 +208,7 @@ class DemandeController extends Controller
             //verifier le destinataire
             if ($verifRole->isEntreprise()) {
                 //verifier que le destinataire est l'admin
-                if($demande->destinataire->role != Roles::Admin->value){
+                if ($demande->destinataire->role != Roles::Admin->value) {
                     return response()->json([
                         'status' => 'error',
                         'message' => 'vous ne pouvez pas envoyer de message a ce destinataire'
@@ -217,7 +217,7 @@ class DemandeController extends Controller
             }
             if ($verifRole->isShop()) {
                 //verifier que le destinataire est l'employe
-                if($demande->destinataire->role != Roles::Employe->value){
+                if ($demande->destinataire->role != Roles::Employe->value) {
                     return response()->json([
                         'status' => 'error',
                         'message' => 'vous ne pouvez pas envoyer de message a ce destinataire'
@@ -226,7 +226,7 @@ class DemandeController extends Controller
             }
             if ($verifRole->isEmploye()) {
                 //verifier que le destinataire est le gestionnaire entreprise
-                if($demande->destinataire->role != Roles::Entreprise->value){
+                if ($demande->destinataire->role != Roles::Entreprise->value) {
                     return response()->json([
                         'status' => 'error',
                         'message' => 'vous ne pouvez pas envoyer de message a ce destinataire'
@@ -236,7 +236,7 @@ class DemandeController extends Controller
             //enregistrement de la demande
             $demande->save();
 
-            $demande->load(['emetteur', 'destinataire.entreprise','destinataire.shop','emetteur.entreprise','emetteur.shop']);
+            $demande->load(['emetteur', 'destinataire.entreprise', 'destinataire.shop', 'emetteur.entreprise', 'emetteur.shop']);
             $destinataire = $demande->destinataire;
 
             // 1. Envoyer la notification à l'utilisateur
@@ -246,7 +246,7 @@ class DemandeController extends Controller
             $lastNotification = $destinataire->notifications()->latest()->first();
 
             // 3. Déclencher l'event (broadcast)
-            event(new DemandeEvent($lastNotification,$destinataire->id_user));
+            event(new DemandeEvent($lastNotification, $destinataire->id_user));
             //enregistrement de la demande
             DB::commit();
 
@@ -281,7 +281,7 @@ class DemandeController extends Controller
             ], 403);
         }
         //recuperer la demande
-        $demande = Demande::where('id_demande', $id)->with(['emetteur.entreprise','emetteur.shop','destinataire.entreprise','destinataire.shop','images'])->first();
+        $demande = Demande::where('id_demande', $id)->with(['emetteur.entreprise', 'emetteur.shop', 'destinataire.entreprise', 'destinataire.shop', 'images'])->first();
         if ($demande) {
 
 
@@ -305,7 +305,7 @@ class DemandeController extends Controller
     {
         $validated = $request->validate([
             'pin' => ['required', 'max:4'],
-            'type' => ['required',new Enum(TypeTransaction::class)],
+            'type' => ['required', new Enum(TypeTransaction::class)],
         ]);
         $user = Auth::user();
         $verifRole = new VerifRole();
@@ -321,122 +321,58 @@ class DemandeController extends Controller
         try {
             //recuperer la demande
             $demande = Demande::where('id_demande', $id)->where('id_destinataire', $user->id_user)->with(['emetteur.compte', 'destinataire.compte'])->first();
-
-            if ($demande) {
-                // verification du statut de la demande
-                if (($verifRole->isShop() || $verifRole->isAdmin()) && $demande->statut != Statuts_demande::En_attente->value) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'le statut de cette demande empeche la transaction!'
-                    ], 409);
-                } else {
-                    if ($verifRole->isEntreprise() && $demande->statut != Statuts_demande::Valide->value) {
-                        return response()->json([
-                            'status' => 'error',
-                            'message' => 'le statut de cette demande empeche la transaction!'
-                        ], 409);
-                    }
-                }
-
-                //type de transaction
-                if ($verifRole->isAdmin()) {
-                    $type = TypeTransaction::RECHARGEENTREPRISE;
-                }
-                if ($verifRole->isShop()) {
-                    $type = TypeTransaction::RECHARGEADMIN;
-                }
-                if ($verifRole->isEntreprise()) {
-                    $type = TypeTransaction::RECHARGEEMPLOYE;
-                }
-
-                //creer la transaction
-                $transaction = Transaction::create([
-                    'id_compte_emetteur' => $demande->destinataire->compte->id_compte,
-                    'id_compte_destinataire' => $demande->emetteur->compte->id_compte,
-                    'montant' => $demande->montant,
-                    'id_demande' => $demande->id_demande,
-                    'type' => $validated['type'],
-                ]);
-
-                //recuperer compte destinataire
-                // NB: le destinataire de la transaction est l'emetteur de la demande
-                $compteDest = Compte::where('id_compte', $demande->emetteur->compte->id_compte)->first();
-                if ($compteDest) {
-                    if ($verifRole->isShop()) {
-                        if (Hash::check($validated['pin'], $demande->destinataire->compte->pin)) {
-                            // mettre a jour le solde du compte destinataire
-                            $compteDest->solde += $demande->montant;
-                            $compteDest->save();
-                            $transaction->save();
-
-                        } else {
-                            return response()->json([
-                                'status' => 'error',
-                                'message' => 'pin incorrect!'
-                            ], 422);
-                        }
-                    } else {
-                        //recuperer compte emetteur
-                        // NB: l'emetteur de la transaction est le destinatiare de la demande
-                        $compteEmet = Compte::where('id_compte', $demande->destinataire->compte->id_compte)->first();
-
-                        if($compteEmet){
-                            if (Hash::check($validated['pin'], $demande->destinataire->compte->pin)) {
-
-                                // verifier si le solde est suffisant
-                                if($compteEmet->solde >= $demande->montant){
-                                    // mettre a jour le solde du compte de l'emetteur
-                                    $compteEmet->solde -= $demande->montant;
-                                    // mettre a jour le solde du compte destinataire
-                                    $compteDest->solde += $demande->montant;
-
-                                    $compteDest->save();
-                                    $compteEmet->save();
-                                    $transaction->save();
-
-                                }else{
-
-                                    return response()->json([
-                                        'status' => 'error',
-                                        'message' => 'solde insuffisant!'
-                                    ], 403);
-                                }
-                            } else {
-                                return response()->json([
-                                    'status' => 'error',
-                                    'message' => 'pin incorrect!'
-                                ], 422);
-                            }
-                        }else{
-                            return response()->json([
-                                'status' => 'error',
-                                'message' => 'le compte emetteur n\'hexiste pas!'
-                            ], 403);
-                        }
-                    }
-                } else {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'le compte destinataire n\'hexiste pas!'
-                    ], 403);
-                }
-
-                //mettre a jour le statut
-                $demande->statut = Statuts_demande::Accorde->value;
-                //enregistrer la transaction dans la demande
-
-                //enregistrer les modifications
-                $demande->save();
-
-
-
-            } else {
+            // verifier si la demande existe
+            if (!$demande) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Cette demande n\'hexiste pas!'
                 ], 403);
             }
-            $demande->load( 'destinataire.shop','destinataire.entreprise','emetteur.entreprise','emetteur.shop','transaction.compteDestinataire');
+            // verification du statut de la demande
+            if (($verifRole->isShop() || $verifRole->isAdmin()) && $demande->statut != Statuts_demande::En_attente->value) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'le statut de cette demande empeche la transaction!'
+                ], 409);
+            }
+            if ($verifRole->isEntreprise() && $demande->statut != Statuts_demande::Valide->value) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'le statut de cette demande empeche la transaction!'
+                ], 409);
+            }
+            // $compte = $demande->destinataire->compte;
+            // $compte->pin = Hash::make($validated['pin']);
+            // $compte->save();
+            // verification du pin
+            if (!Hash::check($validated['pin'], $demande->destinataire->compte->pin)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'pin incorrect!'
+                ], 422);
+            }
+            // NB: le destinataire de la transaction est l'emetteur de la demande
+
+            //creer la transaction
+            $transaction = Transaction::create([
+                'id_compte_emetteur' => $demande->destinataire->compte->id_compte,
+                'id_compte_destinataire' => $demande->emetteur->compte->id_compte,
+                'montant' => $demande->montant,
+                'id_demande' => $demande->id_demande,
+                'type' => $validated['type'],
+            ]);
+            $transaction->save();
+
+
+            //mettre a jour le statut
+            $demande->statut = Statuts_demande::Accorde->value;
+            //enregistrer la transaction dans la demande
+
+            //enregistrer les modifications
+            $demande->save();
+
+
+            $demande->load('destinataire.shop', 'destinataire.entreprise', 'emetteur.entreprise', 'emetteur.shop', 'transaction.compteDestinataire');
             $emetteur = $demande->emetteur;
 
             // 1. Envoyer la notification à l'utilisateur
@@ -446,7 +382,7 @@ class DemandeController extends Controller
             $lastNotification = $emetteur->notifications()->latest()->first();
 
             // 3. Déclencher l'event (broadcast)
-            event(new DemandeEvent($lastNotification,$emetteur->id_user));
+            event(new DemandeEvent($lastNotification, $emetteur->id_user));
 
             DB::commit();
             return response()->json([
@@ -507,7 +443,7 @@ class DemandeController extends Controller
                 ], 403);
             }
 
-            $demande->load( 'destinataire.shop','destinataire.entreprise','emetteur.entreprise','emetteur.shop','transaction.compteDestinataire');
+            $demande->load('destinataire.shop', 'destinataire.entreprise', 'emetteur.entreprise', 'emetteur.shop', 'transaction.compteDestinataire');
             $emetteur = $demande->emetteur;
 
             // 1. Envoyer la notification à l'utilisateur
@@ -517,7 +453,7 @@ class DemandeController extends Controller
             $lastNotification = $emetteur->notifications()->latest()->first();
 
             // 3. Déclencher l'event (broadcast)
-            event(new DemandeEvent($lastNotification,$emetteur->id_user));
+            event(new DemandeEvent($lastNotification, $emetteur->id_user));
 
             DB::commit();
             //envoi de l'email
