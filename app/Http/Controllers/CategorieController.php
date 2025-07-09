@@ -21,10 +21,7 @@ class CategorieController extends Controller
 
         // Vérification des permissions
         if (!in_array($user->role, ['superadmin', 'shop_gest', 'admin', 'caissiere', 'employe'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         if ($verifRole->isShop() or $verifRole->isCaissiere()) {
@@ -63,7 +60,7 @@ class CategorieController extends Controller
             'total' => $categories->total(),
         ];
 
-        return response()->json($response);
+        return $this->successResponse($response);
     }
     /**
      * Création d'une nouvelle catégorie pour un shop.
@@ -74,10 +71,7 @@ class CategorieController extends Controller
 
         // Vérification des permissions
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         $validated = $request->validate([
@@ -112,10 +106,7 @@ class CategorieController extends Controller
 
         // Vérification des permissions
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         $categorie = Categorie::find($id);
@@ -150,10 +141,7 @@ class CategorieController extends Controller
 
         // Vérification des permissions
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         $categorie = Categorie::find($id);
@@ -201,10 +189,7 @@ class CategorieController extends Controller
 
         // Vérification des permissions
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         $categorie = Categorie::find($id);

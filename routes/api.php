@@ -452,21 +452,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transaction/confirm', [TransactionController::class, 'confirmTransaction']);
 });
 
-<<<<<<< HEAD
-use App\Events\NewInvoiceNotification;
 
 Route::post('/test-pusher', function () {
     event(new NewInvoiceNotification(999));
     return response()->json(['message' => 'Événement Pusher envoyé']);
 });
 
-     
-=======
-// Dahsboards
-Route::middleware('auth:sanctum')->group(function () {
-    Route::prefix('dashboard')->group(function () {
-        Route::get('credit', [dashboardCredit::class, 'index']);
-        Route::get('assurance', [DashboardAssuranceController::class, 'index']);
-    });
-});
->>>>>>> b9fb884e700fc9e86188df41a55166c090aa22b8
+

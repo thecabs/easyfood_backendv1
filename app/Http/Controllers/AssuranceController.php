@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Assurance;
 use App\Models\QueryFiler;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 
 class AssuranceController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Afficher toutes les assurances avec leurs entreprises associées.
      */
@@ -82,7 +84,7 @@ class AssuranceController extends Controller
             'total' => $assurances->total(),
         ];
 
-        return response()->json($response);
+        return $this->successResponse($response);
     }
 
 
@@ -93,25 +95,11 @@ class AssuranceController extends Controller
     {
         $user = Auth::user();
         if (!in_array($user->role, ['superadmin', 'admin', 'assurance_gest'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
-        $assurance = Assurance::with('entreprises')->find($id);
-
-        if (!$assurance) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Assurance non trouvée',
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $assurance,
-        ], 200);
+        $assurance = Assurance::with('entreprises')->findOrFail($id);
+        return $this->successResponse($assurance);
     }
 
     /**
@@ -123,10 +111,7 @@ class AssuranceController extends Controller
 
         // Vérification des permissions
         if (!in_array($user->role, ['superadmin', 'admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.'
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         // Validation des données (on ne demande plus le code_ifc puisque celui-ci sera généré automatiquement)
@@ -155,21 +140,12 @@ class AssuranceController extends Controller
 
             // Création de l'assurance
             $assurance = Assurance::create($validated);
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Assurance créée avec succès.',
-                'data' => $assurance,
-            ], 201);
+            return $this->successResponse($assurance,'Assurance créée avec succès.',201);
         } catch (\Exception $e) {
             // Log des erreurs
             Log::error('Erreur création assurance : ', ['error' => $e->getMessage()]);
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Erreur lors de la création de l\'assurance.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->errorResponse('Erreur lors de la création de l\'assurance.',500,$e->getMessage());
         }
     }
 

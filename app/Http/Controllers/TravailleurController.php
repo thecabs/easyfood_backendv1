@@ -25,26 +25,26 @@ class TravailleurController extends Controller
     public function index(Request $request)
     {
         $currentUser = Auth::user(); // Obtenir l'utilisateur authentifié
-    
+
         // Vérification du rôle de l'utilisateur
         if ($currentUser->role === 'superadmin' OR $currentUser->role === 'admin') {
             $travailleurs = User::where('role', 'travailleur')->with(['apporteur'])->get();
         }else{
             $travailleurs = User::where('role', 'travailleur')->where("id_apporteur",$currentUser->id_user)->with(['apporteur'])->get();
 
-        } 
-    
+        }
+
         // Pagination manuelle
         $perPage = $request->input('per_page', 10);
         $currentPage = $request->input('page', 1);
         $paginated = $travailleurs->slice(($currentPage - 1) * $perPage, $perPage)->values();
-    
+
         return response()->json([
             'status' => 'success',
             'data' => $travailleurs,
         ], 200);
     }
-    
+
     /**
      * Activer un compte employé.
      */
@@ -127,23 +127,23 @@ class TravailleurController extends Controller
             'ville' => 'nullable|string',
             'quartier' => 'nullable|string',
             'id_apporteur' => 'nullable|exists:users,id_user',
-            'tel' => 'required|string|max:15',  
+            'tel' => 'required|string|max:15',
             'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
         }
-    
+
         DB::beginTransaction();
-    
+
         try {
             $userData = [
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'nom' => $request->nom,
                 'id_apporteur' => $request->id_apporteur,
-                'tel' => $request->tel,  
+                'tel' => $request->tel,
                 'role' => 'travailleur',
             ];
             // Mise à jour des informations autorisées
@@ -153,30 +153,30 @@ class TravailleurController extends Controller
             if (isset($request->quartier)) {
                 $userData['quartier'] = $request->quartier;
             }
-    
+
             if ($request->hasFile('photo_profil')) {
                 $photoName = time() . '.' . $request->photo_profil->getClientOriginalExtension();
                 $filePath = $request->photo_profil->storeAs('photos_profil', $photoName, 'public');
                 $userData['photo_profil'] = 'storage/' . $filePath;
             }
-    
+
             $user = User::create($userData);
-    
+
             // Charger la relation entreprise
             $user->load('entreprise');
-    
+
             // Générer l'OTP avec une expiration
             $otp = Otp::create([
                 'email' => $user->email,
                 'otp' => random_int(100000, 999999),
                 'expires_at' => now()->addMinutes(10),
             ]);
-    
+
             // Envoyer l'OTP par email
             Mail::to($user->email)->send(new \App\Mail\OtpMail($otp->otp));
-    
+
             DB::commit();
-    
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Compte travailleur créé avec succès. Un OTP a été envoyé.',
@@ -262,7 +262,7 @@ class TravailleurController extends Controller
             'data' => $travailleur,
         ], 200);
     }
-    
+
 
     /**
     * Mettre à jour un travailleur.
@@ -351,10 +351,7 @@ class TravailleurController extends Controller
         $currentUser = Auth::user();
 
         if (!in_array($currentUser->role, ['superadmin', 'admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         try {

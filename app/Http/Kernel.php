@@ -18,7 +18,7 @@ class Kernel extends HttpKernel
         // Autres middlewares
         'role' => \App\Http\Middleware\RoleMiddleware::class,
     ];
-    
+
     protected $middleware = [
         // \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
@@ -48,7 +48,8 @@ class Kernel extends HttpKernel
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            
+            \App\Http\Middleware\ForceJsonResponse::class,
+
         ],
     ];
 

@@ -18,10 +18,7 @@ class ProductFeaturesController extends Controller
 
         // Vérification des rôles
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         // Vérifier si le produit existe
@@ -59,7 +56,7 @@ class ProductFeaturesController extends Controller
             $image->url_photo = 'storage/' . $filePath; // Chemin accessible publiquement
             $produit->images()->save($image);
 
-            
+
 
             return response()->json([
                 'status' => 'success',
@@ -84,10 +81,7 @@ class ProductFeaturesController extends Controller
 
         // Vérification des rôles
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         // Vérifier si le produit existe
@@ -128,10 +122,7 @@ class ProductFeaturesController extends Controller
 
         // Vérification des rôles
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest','admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         // Vérifier si l'image existe

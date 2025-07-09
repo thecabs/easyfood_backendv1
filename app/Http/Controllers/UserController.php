@@ -98,10 +98,7 @@ class UserController extends Controller
 
         // Vérifier si l'utilisateur connecté est autorisé à supprimer d'autres utilisateurs
         if (!in_array($currentUser->role, ['superadmin', 'admin', 'assurance_gest', 'entreprise_gest'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         try {

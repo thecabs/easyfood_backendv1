@@ -43,7 +43,7 @@ class ClientController extends Controller
             'total' => $stocks->total(),
         ];
 
-        return response()->json($response);
+        return $this->successResponse($response);
     }
     public function potentialClient(Request $request){
         $verifRole = new VerifRole();
@@ -72,6 +72,6 @@ class ClientController extends Controller
             'total' => $stocks->total(),
         ];
 
-        return response()->json($response);
+        return $this->successResponse($response);
     }
 }

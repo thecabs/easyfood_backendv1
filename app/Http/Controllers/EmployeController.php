@@ -152,10 +152,7 @@ class EmployeController extends Controller
     {
         $currentUser = Auth::user();
         if (!in_array($currentUser->role, ['superadmin', 'entreprise_gest', 'employe'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -268,7 +265,7 @@ class EmployeController extends Controller
             'total' => $employes->total(),
         ];
 
-        return response()->json($response);
+        return $this->successResponse($response);
     }
     // tout les nonActif
     public function nonActif(Request $request)
@@ -309,7 +306,7 @@ class EmployeController extends Controller
             'total' => $employes->total(),
         ];
 
-        return response()->json($response);
+        return $this->successResponse($response);
     }
 
 

@@ -49,10 +49,7 @@ class StockController extends Controller
         $currentUser = Auth::user();
 
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         $validated = $request->validate([
@@ -155,7 +152,7 @@ class StockController extends Controller
             'total' => $stocks->total(),
         ];
 
-        return response()->json($response);
+        return $this->successResponse($response);
     }
 
 

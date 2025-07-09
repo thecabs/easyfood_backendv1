@@ -18,10 +18,7 @@ class ProduitController extends Controller
 
         // Vérification des autorisations
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere', 'employe', 'employe'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         // Validation des paramètres de la requête
@@ -150,10 +147,7 @@ class ProduitController extends Controller
 
         // Vérification des permissions
         if (!in_array($user->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         // Construction de la requête des produits
@@ -190,7 +184,7 @@ class ProduitController extends Controller
             'total' => $produits->total(),
         ];
 
-        return response()->json($response);
+        return $this->successResponse($response);
     }
 
 
@@ -203,10 +197,7 @@ class ProduitController extends Controller
 
         // Vérification des autorisations
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin', 'caissiere'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         // Charger les relations nécessaires
@@ -258,10 +249,7 @@ class ProduitController extends Controller
 
         // Vérification des rôles autorisés
         if (!in_array($currentUser->role, ['superadmin', 'admin', 'shop_gest'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         // Validation des données entrantes
@@ -323,10 +311,7 @@ class ProduitController extends Controller
         $currentUser = Auth::user();
 
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         $produit = Produit::find($id);
@@ -400,10 +385,7 @@ class ProduitController extends Controller
         $currentUser = Auth::user();
 
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest', 'admin'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
-            ], 403);
+            return $this->errorResponse('Vous n\'êtes pas autorisé à effectuer cette action.',403);
         }
 
         $produit = Produit::find($id);
