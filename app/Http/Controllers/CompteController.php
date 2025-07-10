@@ -2,27 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use App\Models\Compte;
 use App\Models\User;
+use App\Models\Compte;
+use Illuminate\Http\Request;
 use App\Mail\AccountActivated;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class CompteController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Activer un compte pour un utilisateur.
      */
-   
+
 
     /**
      * Vérifier si l'utilisateur actuel a les permissions nécessaires.
      */
-   
+
     /**
      * Récupérer les détails d'un compte.
      */

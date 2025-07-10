@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Roles;
 use App\Models\Compte;
-use App\Models\Entreprise;
 use App\Models\VerifRole;
+use App\Models\Entreprise;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Mail;
 
 class EntrepriseGestController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Afficher les détails d'un gestionnaire d'entreprise.
      */

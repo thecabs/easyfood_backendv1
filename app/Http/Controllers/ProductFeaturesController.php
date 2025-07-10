@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Produit;
 use App\Models\Image;
+use App\Models\Produit;
+use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Auth;
 
 class ProductFeaturesController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Ajoute une image à un produit.
      */

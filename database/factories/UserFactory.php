@@ -38,12 +38,13 @@ class UserFactory extends Factory
     public function configure(): static
 {
     return $this->afterCreating(function (\App\Models\User $user) {
+        $pin = '1234';
         \App\Models\Compte::create([
             'id_user' => $user->id_user,
             'numero_compte' => \App\Models\Compte::generateNumeroCompte($user),
             'solde' => 0,
             'date_creation' => now(),
-            'pin' => Hash::make(1234),
+            'pin' => Hash::make($pin),
         ]);
     });
 }

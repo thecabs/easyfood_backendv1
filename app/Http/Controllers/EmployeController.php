@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\DemandeAdhesionEvent;
 use App\Models\Otp;
 use App\Models\User;
 use App\Models\Roles;
@@ -15,6 +16,10 @@ use App\Models\Transaction;
 use App\Models\LigneFacture;
 use Illuminate\Http\Request;
 use App\Mail\AccountActivated;
+use App\Notifications\DemandeAdhesionNotification;
+use App\Notifications\DemandeAdhesionRejeteNotification;
+use App\Traits\ApiResponseTrait;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +29,7 @@ use Illuminate\Support\Facades\Validator;
 
 class EmployeController extends Controller
 {
+    use ApiResponseTrait;
     const STATUT_INACTIF = 'inactif';
     const STATUT_EN_ATTENTE = 'en_attente';
     const STATUT_ACTIF = 'actif';
@@ -75,6 +81,7 @@ class EmployeController extends Controller
 
             $user = User::create($userData);
 
+
             // Charger la relation entreprise
             $user->load('entreprise');
 
@@ -84,10 +91,15 @@ class EmployeController extends Controller
                 'otp' => random_int(100000, 999999),
                 'expires_at' => now()->addMinutes(10),
             ]);
-
-            // Envoyer l'OTP par email
-            Mail::to($user->email)->send(new \App\Mail\OtpMail($otp->otp));
-
+            $gestionnaire = User::where('id_entreprise',$request['id_entreprise'])->where('role',Roles::Entreprise->value)->firstOrFail();
+            DB::afterCommit(function () use ($user, $gestionnaire,$otp){
+                // Envoyer l'OTP par email
+                Mail::to($user->email)->send(new \App\Mail\OtpMail($otp->otp));
+                // envoyer la demande au gestionnaire entreprise
+                $gestionnaire->notify(new DemandeAdhesionNotification($user));
+                $notification = $gestionnaire->notifications()->latest()->first();
+                event(new DemandeAdhesionEvent($notification, $gestionnaire->id_user));
+            });
             DB::commit();
 
             return response()->json([
@@ -95,6 +107,7 @@ class EmployeController extends Controller
                 'message' => 'Compte employé créé avec succès. Un OTP a été envoyé.',
                 'data' => $user,
             ], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -520,5 +533,31 @@ class EmployeController extends Controller
             'transactions' => $transactions,
             'demandes_credit' => $demandes_credit
         ]);
+    }
+
+    public function rejeterDemandeAdhesion($id_user){
+        $verifRole = new VerifRole();
+        if(!$verifRole->isEntreprise()){
+            return $this->errorResponse('vous ne pouvez effectuer cette action');
+        }
+        DB::beginTransaction();
+        try{
+            $employe = User::where('id_user',$id_user)->firstOrFail();
+            $employe->delete();
+            $otp = OTP::where('email',$employe->email)->first();
+            if($otp){
+                $otp->delete();
+            }
+            DB::afterCommit(function () use ($employe){
+                $employe->notify(new DemandeAdhesionRejeteNotification($employe));
+            });
+            DB::commit();
+            return $this->successResponse(['id'=>$employe->id_user],'Employé rejété avec succès.',200);
+        }
+        catch(Exception $e){
+            DB::rollBack();
+            return $this->errorResponse();
+        }
+
     }
 }

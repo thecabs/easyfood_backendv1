@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
 {
+    use ApiResponseTrait;
     // toutes les notifications
     public function index(Request $request) {
         $user = $request->user();
@@ -25,7 +27,7 @@ class NotificationController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $user->readNotifications,
-            
+
             'message' => 'Notifications récupérées avec succès!'
         ]);
     }
@@ -40,7 +42,7 @@ class NotificationController extends Controller
             'message' => 'Notifications récupérées avec succès!'
         ]);
     }
-    
+
     // marquer comme lue
     public function showNotification(Request $request, $id)
     {
@@ -69,16 +71,12 @@ class NotificationController extends Controller
 
         // Récupère la notification
         $notification = $user->notifications()->findOrFail($id);
-
         // Supprime la notification
         $notification->delete();
+        echo json_encode($notification);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Notification supprimée avec succès',
-            'data' => [
-                'id' => $notification->id
-            ]
-        ], 200);
+        return  $this->successResponse([
+            'id' => $notification->id
+        ],'Notification supprimée avec succès',200);
     }
 }

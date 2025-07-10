@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use App\Models\Roles_demande;
 use App\Models\Statuts_demande;
 use App\Models\TypeTransaction;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -24,6 +25,7 @@ use Illuminate\Validation\Rules\Enum;
 
 class DemandeController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Recuperer les demandes de l'admin.
      */
@@ -124,16 +126,19 @@ class DemandeController extends Controller
             $demande->load(['destinataire.entreprise', 'destinataire.shop', 'images', 'emetteur.entreprise', 'emetteur.shop']);
             $destinataire = $demande->destinataire;
 
-            // 1. Envoyer la notification à l'utilisateur
-            $destinataire->notify(new \App\Notifications\DemandeNotification($demande));
+            DB::afterCommit(function () use ($demande, $destinataire) {
+                // 1. Envoyer la notification à l'utilisateur
+                $destinataire->notify(new \App\Notifications\DemandeNotification($demande));
 
-            // 2. Récupérer la dernière notification stockée en base
-            $lastNotification = $destinataire->notifications()->latest()->first();
+                // 2. Récupérer la dernière notification stockée en base
+                $lastNotification = $destinataire->notifications()->latest()->first();
 
-            // 3. Déclencher l'event (broadcast)
-            event(new DemandeEvent($lastNotification, $destinataire->id_user));
+                // 3. Déclencher l'event (broadcast)
+                event(new DemandeEvent($lastNotification, $destinataire->id_user));
+            });
             //enregistrement de la transaction
             DB::commit();
+
 
             return response()->json([
                 'status' => 'success',
@@ -238,15 +243,17 @@ class DemandeController extends Controller
 
             $demande->load(['emetteur', 'destinataire.entreprise', 'destinataire.shop', 'emetteur.entreprise', 'emetteur.shop']);
             $destinataire = $demande->destinataire;
+            DB::afterCommit(function () use ($demande, $destinataire) {
 
-            // 1. Envoyer la notification à l'utilisateur
-            $destinataire->notify(new \App\Notifications\DemandeNotification($demande));
+                // 1. Envoyer la notification à l'utilisateur
+                $destinataire->notify(new \App\Notifications\DemandeNotification($demande));
 
-            // 2. Récupérer la dernière notification stockée en base
-            $lastNotification = $destinataire->notifications()->latest()->first();
+                // 2. Récupérer la dernière notification stockée en base
+                $lastNotification = $destinataire->notifications()->latest()->first();
 
-            // 3. Déclencher l'event (broadcast)
-            event(new DemandeEvent($lastNotification, $destinataire->id_user));
+                // 3. Déclencher l'event (broadcast)
+                event(new DemandeEvent($lastNotification, $destinataire->id_user));
+            });
             //enregistrement de la demande
             DB::commit();
 
@@ -375,15 +382,18 @@ class DemandeController extends Controller
             $demande->load('destinataire.shop', 'destinataire.entreprise', 'emetteur.entreprise', 'emetteur.shop', 'transaction.compteDestinataire');
             $emetteur = $demande->emetteur;
 
-            // 1. Envoyer la notification à l'utilisateur
-            $emetteur->notify(new \App\Notifications\DemandeNotification($demande));
 
-            // 2. Récupérer la dernière notification stockée en base
-            $lastNotification = $emetteur->notifications()->latest()->first();
+            DB::afterCommit(function () use ($demande, $emetteur) {
 
-            // 3. Déclencher l'event (broadcast)
-            event(new DemandeEvent($lastNotification, $emetteur->id_user));
+                // 1. Envoyer la notification à l'utilisateur
+                $emetteur->notify(new \App\Notifications\DemandeNotification($demande));
 
+                // 2. Récupérer la dernière notification stockée en base
+                $lastNotification = $emetteur->notifications()->latest()->first();
+
+                // 3. Déclencher l'event (broadcast)
+                event(new DemandeEvent($lastNotification, $emetteur->id_user));
+            });
             DB::commit();
             return response()->json([
                 'status' => 'success',
@@ -446,15 +456,17 @@ class DemandeController extends Controller
             $demande->load('destinataire.shop', 'destinataire.entreprise', 'emetteur.entreprise', 'emetteur.shop', 'transaction.compteDestinataire');
             $emetteur = $demande->emetteur;
 
-            // 1. Envoyer la notification à l'utilisateur
-            $emetteur->notify(new \App\Notifications\DemandeNotification($demande));
 
-            // 2. Récupérer la dernière notification stockée en base
-            $lastNotification = $emetteur->notifications()->latest()->first();
+            DB::afterCommit(function () use ($demande, $emetteur) {
+                // 1. Envoyer la notification à l'utilisateur
+                $emetteur->notify(new \App\Notifications\DemandeNotification($demande));
 
-            // 3. Déclencher l'event (broadcast)
-            event(new DemandeEvent($lastNotification, $emetteur->id_user));
+                // 2. Récupérer la dernière notification stockée en base
+                $lastNotification = $emetteur->notifications()->latest()->first();
 
+                // 3. Déclencher l'event (broadcast)
+                event(new DemandeEvent($lastNotification, $emetteur->id_user));
+            });
             DB::commit();
             //envoi de l'email
             // Mail::to($demande->emetteur->email)->send(new \App\Mail\DemandRefused($demande));

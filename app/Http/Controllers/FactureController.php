@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use Carbon\Carbon;
+use App\Models\Shop;
+use App\Models\Compte;
 use App\Models\Facture;
 use App\Models\LigneFacture;
-use App\Models\Compte;
-use App\Models\Shop;
-use Carbon\Carbon;
+use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Events\NewInvoiceNotification;
-use Illuminate\Support\Facades\Log;
 
 class FactureController extends Controller
 {
+    use ApiResponseTrait;
     public function createInvoice(Request $request)
     {
         $vendeur = Auth::user(); // utilisateur authentifié
@@ -70,9 +72,9 @@ class FactureController extends Controller
 
             // 🔹 Émettre une notification en temps réel pour le client
             event(new NewInvoiceNotification(
-                $facture->id_facture, 
-                $facture->id_client, 
-                $facture->montant, 
+                $facture->id_facture,
+                $facture->id_client,
+                $facture->montant,
                 $shop->nom
             ));
 

@@ -9,6 +9,7 @@ use App\Models\VerifRole;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PartenaireShop;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Mail;
 
 class PartenaireShopGestController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Afficher les détails d'un gestionnaire de shop partenaire.
      */

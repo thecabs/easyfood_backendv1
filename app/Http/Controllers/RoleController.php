@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Validator;
 
 class RoleController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Liste tous les rôles avec leurs utilisateurs.
      */

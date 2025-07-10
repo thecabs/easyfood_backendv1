@@ -16,10 +16,10 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      */
-    public function run(): void
+    public function runWithParams(int $nbrAssurance, int $nbrEntreprisePerAssurance, int $nbrEmployePerEntreprise): void
     {
         // 1. Générer 100 assurances
-        for ($i = 1; $i <= 100; $i++) {
+        for ($i = 1; $i <= $nbrAssurance; $i++) {
             $codeIFC = 'IFC-' . str_pad($i, 5, '0', STR_PAD_LEFT); // ex: IFC-00001
 
             $assurance = Assurance::factory()->create(
@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
 
 
             // 2. Générer 10 entreprises par assurance
-            for ($j = 1; $j <= 10; $j++) {
+            for ($j = 1; $j <= $nbrEntreprisePerAssurance; $j++) {
                 $ville = fake()->city();
                 $quartier = fake()->streetName();
 
@@ -52,7 +52,7 @@ class DatabaseSeeder extends Seeder
 
 
 
-                for ($l = 1; $l <= 10; $l++) {
+                for ($l = 1; $l <= $nbrEmployePerEntreprise; $l++) {
 
                     // 3. Générer 5 employés par entreprise
                     User::factory()->create([

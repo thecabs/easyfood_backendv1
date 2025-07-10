@@ -7,10 +7,12 @@ use App\Models\VerifRole;
 use App\Models\QueryFiler;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Auth;
 
 class CategorieController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Liste des catégories accessibles par l'utilisateur.
      */

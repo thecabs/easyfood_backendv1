@@ -7,10 +7,12 @@ use App\Models\Produit;
 use App\Models\VerifRole;
 use App\Models\QueryFiler;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Auth;
 
 class ProduitController extends Controller
 {
+    use ApiResponseTrait;
     // RECHERCHER PRODUIT POUR L'employé
     public function rechercherProduit(Request $request)
     {

@@ -6,9 +6,11 @@ use App\Models\User;
 use App\Models\VerifRole;
 use App\Models\QueryFiler;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 
 class ClientController extends Controller
 {
+    use ApiResponseTrait;
     // recuperer tout ses clients
     public function index(Request $request){
         $verifRole = new VerifRole();

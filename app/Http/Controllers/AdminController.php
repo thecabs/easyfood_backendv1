@@ -11,6 +11,7 @@ use App\Models\VerifRole;
 use Illuminate\Http\Request;
 use App\Models\Roles_demande;
 use App\Models\Statuts_demande;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +24,7 @@ use Illuminate\Foundation\Auth\User as AuthUser;
 
 class AdminController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Création d'un compte admin.
      */

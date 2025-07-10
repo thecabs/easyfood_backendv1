@@ -2,26 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Compte;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 
 class CaissiereController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * Lister toutes les caissières
      */
     public function index(Request $request)
     {
         $currentUser = Auth::user(); // Obtenir l'utilisateur authentifié
-    
+
         // Vérification du rôle de l'utilisateur
         if ($currentUser->role === 'superadmin' OR $currentUser->role === 'admin') {
             $caissieres = User::where('role', 'caissiere')->with(['shop'])->get();
@@ -33,19 +35,19 @@ class CaissiereController extends Controller
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-    
+
         // Supprimer les champs `id_entreprise` et `id_assurance` avant de retourner la réponse
         $caissieres = $caissieres->map(function ($caissiere) {
             $caissiere->shop = $caissiere->shop;
             unset($caissiere->id_entreprise, $caissiere->id_assurance,$caissiere->shop, $caissier->id_partenaire_shop);
             return $caissiere;
         });
-    
+
         // Pagination manuelle
         $perPage = $request->input('per_page', 10);
         $currentPage = $request->input('page', 1);
         $paginated = $caissieres->slice(($currentPage - 1) * $perPage, $perPage)->values();
-    
+
         return response()->json([
             'status' => 'success',
             'data' => $paginated,
@@ -57,8 +59,8 @@ class CaissiereController extends Controller
             ],
         ], 200);
     }
-    
-    
+
+
 
     /**
      * Ajouter une nouvelle caissière
@@ -158,35 +160,35 @@ class CaissiereController extends Controller
     public function show($id_user)
     {
         $currentUser = Auth::user();
-    
+
         if (!in_array($currentUser->role, ['superadmin', 'shop_gest','caissiere'])) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à effectuer cette action.',
             ], 403);
         }
-    
+
         // On recherche l'utilisateur avec le rôle 'caissiere' et on charge la relation shop
         $user = User::where('role', 'caissiere')
             ->with('shop')
             ->find($id_user);
-    
+
         if (!$user) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Caissière introuvable.',
             ], 404);
         }
-    
+
         // Récupération du nom du shop s'il existe
        // $shopName = $user->shop ? $user->shop->nom : null;
-    
+
         return response()->json([
             'status' => 'success',
             'data'   =>  $user,
         ], 200);
     }
-    
+
 
     /**
      * Mettre à jour une caissière

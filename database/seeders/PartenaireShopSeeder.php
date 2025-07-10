@@ -13,10 +13,10 @@ class PartenaireShopSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    public function runWithParams(int $nbrShop): void
     {
          // 4. Générer 50 shops indépendants
-         for ($k = 12; $k <= 120; $k++) {
+         for ($k = 0; $k <= $nbrShop; $k++) {
             $ville = fake()->city();
             $quartier = fake()->streetName();
             $nom = 'Shop ' . strtoupper(Str::random(5)) . " $ville $quartier";

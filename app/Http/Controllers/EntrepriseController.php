@@ -7,12 +7,13 @@ use App\Models\VerifRole;
 use App\Models\Entreprise;
 use App\Models\QueryFiler;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class EntrepriseController extends Controller
 {
-
+    use ApiResponseTrait;
 
     /**
      * Rechercher les entreprises.

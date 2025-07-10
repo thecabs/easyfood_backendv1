@@ -2,20 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\AccountActivated;
-use Illuminate\Http\Request;
+use App\Models\Otp;
 use App\Models\User;
 use App\Models\Compte;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\Mail\AccountActivated;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use App\Models\Otp;
+use Illuminate\Support\Facades\Validator;
+
 class TravailleurController extends Controller
 {
+    use ApiResponseTrait;
     const STATUT_INACTIF = 'inactif';
     const STATUT_EN_ATTENTE = 'en_attente';
     const STATUT_ACTIF = 'actif';

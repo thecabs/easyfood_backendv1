@@ -8,6 +8,7 @@ use App\Models\Assurance;
 use App\Models\VerifRole;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Mail;
 
 class AssuranceGestController extends Controller
 {
+    use ApiResponseTrait;
     public function showGest($id_user)
     {
         $user = Auth::user();

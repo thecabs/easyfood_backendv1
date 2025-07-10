@@ -32,6 +32,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AssuranceGestController;
 use App\Http\Controllers\DashboardAssuranceController;
 use App\Http\Controllers\EntrepriseGestController;
+use App\Http\Controllers\FactoryController;
 use App\Http\Controllers\PartenaireShopController;
 use App\Http\Controllers\ProductFeaturesController;
 use App\Http\Controllers\PartenaireShopGestController;
@@ -154,7 +155,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/entreprise-gest/show/{id_user}', [EntrepriseGestController::class, 'showGest']);
 });
 
-
+//
+// factory
+Route::post('factory1',[FactoryController::class,'database1']);
+Route::post('factory2',[FactoryController::class,'database2']);
+Route::post('factory3',[FactoryController::class,'database3']);
+Route::post('factory4',[FactoryController::class,'database4']);
+Route::post('factory5',[FactoryController::class,'database5']);
+Route::post('factory45',[FactoryController::class,'database45']);
 
 // Employes
 
@@ -168,6 +176,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/employes', [EmployeController::class, 'index']);
     Route::get('/employes/non-actif', [EmployeController::class, 'nonActif']);
 
+    Route::delete('/employes/{id}', [EmployeController::class, 'rejeterDemandeAdhesion']);
     // Affiche un employé spécifique
     Route::get('/employes/{id}', [EmployeController::class, 'show']);
 });

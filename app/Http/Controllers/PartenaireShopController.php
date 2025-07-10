@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 use App\Models\QueryFiler;
 use Illuminate\Http\Request;
 use App\Models\PartenaireShop;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class PartenaireShopController extends Controller
 {
+    use ApiResponseTrait;
 
     public function listShopsSimple(Request $request)
 {

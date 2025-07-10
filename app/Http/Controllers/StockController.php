@@ -7,10 +7,12 @@ use App\Models\StockLog;
 use App\Models\QueryFiler;
 use Illuminate\Http\Request;
 use App\Models\PartenaireShop;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Auth;
 
 class StockController extends Controller
 {
+    use ApiResponseTrait;
     private function logStockAction($id_stock, $action, $details = null)
     {
         $currentUser = Auth::user();

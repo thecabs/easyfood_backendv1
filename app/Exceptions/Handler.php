@@ -39,43 +39,43 @@ class Handler extends ExceptionHandler
 
 
 
-    public function render($request, Throwable $exception)
-    {
-        if ($request->expectsJson()) {
-            if ($exception instanceof ValidationException) {
-                return $this->validationError($exception->errors());
-            }
+    // public function render($request, Throwable $exception)
+    // {
+    //     if ($request->expectsJson()) {
+    //         if ($exception instanceof ValidationException) {
+    //             return $this->validationError($exception->errors());
+    //         }
 
-            if ($exception instanceof ModelNotFoundException) {
-                return $this->errorResponse('Ressource introuvable', 404);
-            }
+    //         if ($exception instanceof ModelNotFoundException) {
+    //             return $this->errorResponse('Ressource introuvable', 404);
+    //         }
 
-            if ($exception instanceof AuthorizationException) {
-                return $this->errorResponse('Action non autorisée', 403);
-            }
+    //         if ($exception instanceof AuthorizationException) {
+    //             return $this->errorResponse('Action non autorisée', 403);
+    //         }
 
-            if ($exception instanceof AuthenticationException) {
-                return $this->errorResponse('Non authentifié', 401);
-            }
+    //         if ($exception instanceof AuthenticationException) {
+    //             return $this->errorResponse('Non authentifié', 401);
+    //         }
 
-            if ($exception instanceof NotFoundHttpException) {
-                return $this->errorResponse('Route introuvable', 404);
-            }
+    //         if ($exception instanceof NotFoundHttpException) {
+    //             return $this->errorResponse('Route introuvable', 404);
+    //         }
 
-            if ($exception instanceof HttpException) {
-                return $this->errorResponse($exception->getMessage(), $exception->getStatusCode());
-            }
+    //         if ($exception instanceof HttpException) {
+    //             return $this->errorResponse($exception->getMessage(), $exception->getStatusCode());
+    //         }
 
-            // 🔥 Catch-all pour les erreurs techniques
-            Log::error('Erreur technique API', [
-                'message' => $exception->getMessage(),
-                'trace' => $exception->getTraceAsString(),
-                'user_id' => auth()->id() ?? null
-            ]);
+    //         // 🔥 Catch-all pour les erreurs techniques
+    //         Log::error('Erreur technique API', [
+    //             'message' => $exception->getMessage(),
+    //             'trace' => $exception->getTraceAsString(),
+    //             'user_id' => auth()->id() ?? null
+    //         ]);
 
-            return $this->errorResponse();
-        }
+    //         return $this->errorResponse();
+    //     }
 
-        return parent::render($request, $exception);
-    }
+    //     return parent::render($request, $exception);
+    // }
 }
